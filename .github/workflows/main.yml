@@ -1,0 +1,39 @@
+name: Deploy to EC2 on main push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. 프로젝트 폴더로 이동
+            cd /home/ubuntu/chalpu-web # 실제 EC2의 프로젝트 경로로 수정
+
+            # 2. 최신 코드 pull
+            git pull
+
+            # 3. 의존성 설치 (package-lock.json 기준)
+            npm ci
+
+            # 4. 빌드
+            npm run build
+
+            # 5. nginx 재시작
+            sudo systemctl restart nginx
+
+            # 5. PM2로 앱 재시작 (없으면 새로 시작)
+            pm2 restart chalpu-web || pm2 start npm --name chalpu-web -- run start -- -p 3001
+
+            # 6. PM2 상태 저장 (서버 재부팅 시 자동 실행)
+            pm2 save
