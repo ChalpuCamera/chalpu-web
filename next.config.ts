@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   // 기본 설정 (웹뷰 최적화)
   poweredByHeader: false,
   compress: true,
-  swcMinify: true,
   trailingSlash: false,
 
   // 웹뷰에 특화된 성능 최적화
@@ -19,17 +18,7 @@ const nextConfig: NextConfig = {
     ],
     optimizeCss: true,
     scrollRestoration: true,
-    clientInstrumentationHook: true,
     webVitalsAttribution: ["CLS", "LCP", "FCP", "FID", "TTFB"],
-    // 웹뷰 성능 최적화
-    turbo: {
-      rules: {
-        "*.svg": {
-          loaders: ["@svgr/webpack"],
-          as: "*.js",
-        },
-      },
-    },
   },
 
   // 빌드 최적화
@@ -93,15 +82,6 @@ const nextConfig: NextConfig = {
           {
             key: "X-UA-Compatible",
             value: "IE=edge",
-          },
-          {
-            key: "viewport",
-            value:
-              "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
-          },
-          {
-            key: "format-detection",
-            value: "telephone=no",
           },
           {
             key: "Cache-Control",
