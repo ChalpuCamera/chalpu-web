@@ -96,8 +96,8 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
             {/* 대표 사진 표시 */}
             {photo.isFeatured && (
-              <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                <FontAwesomeIcon icon={faStar} className="text-xs" />
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                <FontAwesomeIcon icon={faStar} className="text-sm" />
                 대표
               </div>
             )}
@@ -112,7 +112,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   className="bg-white/90 hover:bg-white text-yellow-600"
                   title="대표 사진으로 설정"
                 >
-                  <FontAwesomeIcon icon={faStar} className="text-xs" />
+                  <FontAwesomeIcon icon={faStar} className="text-sm" />
                 </Button>
               )}
 
@@ -125,7 +125,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   className="bg-red-500/90 hover:bg-red-500"
                   title="사진 삭제"
                 >
-                  <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                  <FontAwesomeIcon icon={faTrash} className="text-sm" />
                 </Button>
               )}
             </div>
@@ -185,7 +185,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </div>
 
             {/* 사진 정보 */}
-            <div className="mt-4 text-white text-sm">
+            <div className="mt-4 text-white text-base">
               <p>
                 <strong>파일명:</strong> {selectedPhoto.fileName}
               </p>

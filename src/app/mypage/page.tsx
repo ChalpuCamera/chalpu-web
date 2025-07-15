@@ -251,7 +251,10 @@ const MyPage: React.FC = () => {
                           className="text-blue-600 hover:text-blue-800 p-1"
                           title="매장 수정"
                         >
-                          <FontAwesomeIcon icon={faEdit} className="text-sm" />
+                          <FontAwesomeIcon
+                            icon={faEdit}
+                            className="text-base"
+                          />
                         </button>
                         <button
                           onClick={(e) => {
@@ -262,14 +265,17 @@ const MyPage: React.FC = () => {
                           title="매장 삭제"
                           disabled={deleteStoreMutation.isPending}
                         >
-                          <FontAwesomeIcon icon={faTrash} className="text-sm" />
+                          <FontAwesomeIcon
+                            icon={faTrash}
+                            className="text-base"
+                          />
                         </button>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
                       {store.address || "주소 미입력"}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>{store.businessType || "업종 미입력"}</span>
                       <span>{store.phone || "전화번호 미입력"}</span>
                     </div>

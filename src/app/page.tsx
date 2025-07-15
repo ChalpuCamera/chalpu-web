@@ -127,7 +127,7 @@ export default function Home() {
     <div className="bg-white">
       {/* Development Cache Info */}
       {showDevInfo && (
-        <div className="bg-gray-100 p-2 text-xs text-gray-600 border-b">
+        <div className="bg-gray-100 p-2 text-sm text-gray-600 border-b">
           <div className="max-w-[400px] mx-auto">
             <div className="flex justify-between items-center mb-1">
               <span>
@@ -139,7 +139,7 @@ export default function Home() {
               </span>
               <button
                 onClick={forceRefresh}
-                className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
               >
                 새로고침
               </button>
@@ -160,7 +160,7 @@ export default function Home() {
               {isLoggedIn && (
                 <button
                   onClick={logout}
-                  className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                  className="bg-red-500 text-white px-2 py-1 rounded text-sm"
                 >
                   로그아웃
                 </button>
@@ -230,7 +230,7 @@ export default function Home() {
                   >
                     <div>
                       <div className="font-medium">{store.storeName}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-sm text-gray-500">
                         {store.businessType}
                       </div>
                     </div>
@@ -276,7 +276,7 @@ export default function Home() {
             onClick={handleMyPage}
           >
             <span>마이페이지</span>
-            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+            <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
           </button>
         </div>
       </div>
@@ -296,7 +296,7 @@ export default function Home() {
                 className="text-2xl text-blue-600"
               />
               <span className="font-medium">음식 촬영 가이드</span>
-              <span className="text-xs text-gray-500">멋진 사진 찍기</span>
+              <span className="text-sm text-gray-500">멋진 사진 찍기</span>
             </Button>
 
             <Button
@@ -309,7 +309,7 @@ export default function Home() {
                 className="text-2xl text-green-600"
               />
               <span className="font-medium">메뉴 관리하기</span>
-              <span className="text-xs text-gray-500">메뉴 등록/수정</span>
+              <span className="text-sm text-gray-500">메뉴 등록/수정</span>
             </Button>
 
             {/* <Button
@@ -319,7 +319,7 @@ export default function Home() {
             >
               <FontAwesomeIcon icon={faEdit} className="text-2xl text-purple-600" />
               <span className="font-medium">메뉴 소개 만들기</span>
-              <span className="text-xs text-gray-500">매력적인 설명 작성</span>
+              <span className="text-sm text-gray-500">매력적인 설명 작성</span>
             </Button>
 
             <Button
@@ -329,7 +329,7 @@ export default function Home() {
             >
               <FontAwesomeIcon icon={faShareAlt} className="text-2xl text-orange-600" />
               <span className="font-medium">SNS 콘텐츠</span>
-              <span className="text-xs text-gray-500">홍보 콘텐츠 제작</span>
+              <span className="text-sm text-gray-500">홍보 콘텐츠 제작</span>
             </Button> */}
           </div>
         </div>
@@ -433,7 +433,9 @@ export default function Home() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <p>아직 활동 내역이 없습니다.</p>
-              <p className="text-sm mt-1">첫 번째 음식 사진을 촬영해보세요!</p>
+              <p className="text-base mt-1">
+                첫 번째 음식 사진을 촬영해보세요!
+              </p>
             </div>
           )}
         </div>
@@ -442,7 +444,7 @@ export default function Home() {
         <div>
           {!isAvailable && (
             <div className="bg-yellow-100 rounded-lg p-3 mt-8">
-              <p className="text-sm text-yellow-800 text-center">
+              <p className="text-base text-yellow-800 text-center">
                 ⚠️ 네이티브 기능을 사용하려면 앱에서 실행해주세요
               </p>
             </div>

@@ -232,7 +232,7 @@ const MenuPage: React.FC = () => {
             </span>
             <FontAwesomeIcon
               icon={showStoreSelector ? faChevronUp : faChevronDown}
-              className="text-sm"
+              className="text-base"
             />
           </Button>
 
@@ -336,9 +336,9 @@ const MenuPage: React.FC = () => {
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="font-medium">{food.foodName}</h3>
-                  <span className="text-sm">{formatPrice(food.price)}</span>
+                  <span className="text-base">{formatPrice(food.price)}</span>
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                <p className="text-base text-gray-600 line-clamp-2 mb-2">
                   {food.description}
                 </p>
                 <div className="flex gap-2">
