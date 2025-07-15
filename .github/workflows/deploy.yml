@@ -22,7 +22,9 @@ jobs:
             # 2. 최신 코드 pull
             git pull
             # 2. 기존 프로세스 완전 정리 (빌드 전에 먼저 정리)
-            pm2 delete chalpu-web || true
+            if pm2 list | grep -q "chalpu-web"; then
+              pm2 delete chalpu-web
+            fi
             sudo pkill -f "chalpu-web" || true
             sudo fuser -k 3001/tcp || true
             pkill -f "npm ci" || true
