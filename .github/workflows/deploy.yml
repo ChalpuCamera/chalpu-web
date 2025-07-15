@@ -34,7 +34,6 @@ jobs:
       - name: Create .env.local file
         run: |
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env.local
-
       # 5. 빌드 실행
       - name: Build application
         run: npm run build
@@ -46,7 +45,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
       # 7. 빌드 결과물 전송
       - name: Deploy to EC2
         run: |
@@ -54,9 +52,14 @@ jobs:
             --exclude='.git' \
             --exclude='.next/cache' \
             --no-perms --no-owner --no-group \
-            .
+            .next \
+            node_modules \
+            package.json \
+            package-lock.json \
+            next.config.js \
+            .env.local \
+            public \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/chalpu-web/
-
       # 8. EC2에서 서비스 재시작
       - name: Restart application on EC2
         run: |
