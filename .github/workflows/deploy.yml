@@ -25,8 +25,6 @@ jobs:
             if pm2 list | grep -q "chalpu-web"; then
               pm2 delete chalpu-web
             fi
-            sudo pkill -f "chalpu-web" || true
-            sudo fuser -k 3001/tcp || true
             pkill -f "npm ci" || true
             # 3. 의존성 설치 (package-lock.json 기준)
             npm ci
