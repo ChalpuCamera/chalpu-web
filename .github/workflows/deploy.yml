@@ -21,17 +21,21 @@ jobs:
             cd /home/ubuntu/chalpu-web # 실제 EC2의 프로젝트 경로로 수정
             # 2. 최신 코드 pull
             git pull
+            # 2. 기존 프로세스 완전 정리 (빌드 전에 먼저 정리)
+            pm2 delete chalpu-web || true
+            sudo pkill -f "chalpu-web" || true
+            sudo fuser -k 3001/tcp || true
+            pkill -f "npm ci" || true
             # 3. 의존성 설치 (package-lock.json 기준)
             npm ci
             # 4. 빌드
             npm run build
-            # 기존 프로세스 완전 정리
-            pm2 delete chalpu-web || true
-            sudo pkill -f "chalpu-web" || true
-            sudo fuser -k 3001/tcp || true
             # PM2로 앱 시작
             pm2 start npm --name chalpu-web -- run start -- -p 3001
             # PM2 상태 저장 (서버 재부팅 시 자동 실행)
             pm2 save
             # nginx 재시작
             sudo systemctl restart nginx
+            # 배포 후 정리
+            npm cache clean --force
+            pkill -f "npm ci" || true
