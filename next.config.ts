@@ -52,8 +52,62 @@ const nextConfig: NextConfig = {
   // 웹뷰 특화 헤더
   async headers() {
     return [
+      // 정적 파일은 인증 없이 접근 가능하도록 설정
       {
-        source: "/(.*)",
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+        ],
+      },
+      // 폰트 파일
+      {
+        source: "/_next/static/media/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+        ],
+      },
+      // 이미지 파일
+      {
+        source: "/_next/image/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+        ],
+      },
+      // API 응답 캐싱
+      {
+        source: "/api/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=60, s-maxage=300",
+          },
+        ],
+      },
+      // 페이지 경로에만 보안 헤더 적용
+      {
+        source:
+          "/((?!_next/static|_next/image|_next/webpack-hmr|api|favicon.ico).*)",
         headers: [
           {
             key: "X-DNS-Prefetch-Control",
@@ -86,36 +140,6 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=3600, s-maxage=86400",
-          },
-        ],
-      },
-      // 정적 자산 캐싱
-      {
-        source: "/_next/static/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      // 폰트 캐싱
-      {
-        source: "/_next/static/media/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      // API 응답 캐싱
-      {
-        source: "/api/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=60, s-maxage=300",
           },
         ],
       },
