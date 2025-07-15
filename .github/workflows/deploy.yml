@@ -53,9 +53,6 @@ jobs:
             --exclude='.git' \
             --exclude='.next/cache' \
             --exclude='node_modules' \
-            --exclude='src' \
-            --exclude='*.log' \
-            --exclude='.env*' \
             --no-perms --no-owner --no-group \
             --chmod=D755,F644 \
             .next \
