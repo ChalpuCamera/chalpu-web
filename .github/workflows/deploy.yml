@@ -53,13 +53,13 @@ jobs:
           rsync -avz --delete \
             --exclude='.git' \
             --exclude='.next/cache' \
-            .next/ \
-            node_modules/ \
+            .next \
+            node_modules \
             package.json \
             package-lock.json \
             next.config.js \
             .env.local \
-            public/ \
+            public \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/chalpu-web/
 
       # 8. EC2에서 서비스 재시작
