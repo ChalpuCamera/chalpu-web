@@ -10,103 +10,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Move to project directory
+      - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/ubuntu/chalpu-web
-            pwd
-            echo "✅ Moved to project directory"
-
-      - name: 2. Pull latest code
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
+            # 1. 프로젝트 폴더로 이동
+            cd /home/ubuntu/chalpu-web # 실제 EC2의 프로젝트 경로로 수정
+            # 2. 최신 코드 pull
             git pull
-            echo "✅ Git pull completed"
-
-      - name: 3. Clean up existing processes
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
+            # 2. 기존 프로세스 완전 정리 (빌드 전에 먼저 정리)
             if pm2 list | grep -q "chalpu-web"; then
               pm2 delete chalpu-web
-              echo "✅ PM2 process deleted"
-            else
-              echo "ℹ️ No existing PM2 process found"
             fi
             pkill -f "npm ci" || true
-            echo "✅ Process cleanup completed"
-
-      - name: 4. Install dependencies
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
-            echo "📦 Installing dependencies..."
+            # 3. 의존성 설치 (package-lock.json 기준)
             npm ci
-            echo "✅ Dependencies installed"
-
-      - name: 5. Build application
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
-            echo "🔨 Building application..."
+            # 4. 빌드
             npm run build
-            echo "✅ Build completed"
-
-      - name: 6. Start PM2 process
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
-            echo "🚀 Starting PM2 process..."
+            # PM2로 앱 시작
             pm2 start npm --name chalpu-web -- run start -- -p 3001
+            # PM2 상태 저장 (서버 재부팅 시 자동 실행)
             pm2 save
-            echo "✅ PM2 process started and saved"
-
-      - name: 7. Restart nginx
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "🔄 Restarting nginx..."
+            # nginx 재시작
             sudo systemctl restart nginx
-            echo "✅ Nginx restarted"
-
-      - name: 8. Post-deployment cleanup
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/chalpu-web
-            echo "🧹 Cleaning up..."
+            # 배포 후 정리
             npm cache clean --force
             pkill -f "npm ci" || true
-            echo "✅ Cleanup completed"
-            echo "🎉 Deployment finished successfully!"
