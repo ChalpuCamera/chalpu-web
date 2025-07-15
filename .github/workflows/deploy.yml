@@ -52,6 +52,7 @@ jobs:
           rsync -avz --delete \
             --exclude='.git' \
             --exclude='.next/cache' \
+            --exclude='.next/types' \
             --exclude='node_modules' \
             --no-perms --no-owner --no-group \
             --chmod=D755,F644 \
@@ -59,7 +60,6 @@ jobs:
             package.json \
             package-lock.json \
             next.config.js \
-            .env.local \
             public \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/chalpu-web/
 
