@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNativeBridge } from "@/utils/nativeBridge";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faLock } from "@fortawesome/free-solid-svg-icons";
+import { faUser } from "@fortawesome/free-solid-svg-icons";
 
 interface LoginGuardProps {
   children: React.ReactNode;
@@ -15,20 +15,7 @@ interface LoginGuardProps {
 
 export function LoginGuard({ children, fallback }: LoginGuardProps) {
   const { isLoggedIn, isLoading, setTokens, clearTokens } = useAuthStore();
-  const { bridge, isAvailable } = useNativeBridge();
-
-  const handleNativeLogin = async () => {
-    if (isAvailable) {
-      try {
-        // 네이티브 로그인 화면 호출
-        await bridge.showLogin();
-      } catch (error) {
-        console.error("네이티브 로그인 화면 호출 실패:", error);
-      }
-    } else {
-      console.log("네이티브 앱에서만 로그인 가능합니다.");
-    }
-  };
+  const { isAvailable } = useNativeBridge();
 
   // 개발 모드에서 임시 로그인 (테스트용)
   const handleDevLogin = () => {
@@ -55,6 +42,11 @@ export function LoginGuard({ children, fallback }: LoginGuardProps) {
     );
   }
 
+  // 네이티브 앱에서는 LoginGuard 비활성화 (네이티브에서 로그인 처리)
+  if (isAvailable) {
+    return <>{children}</>;
+  }
+
   // 로그인된 상태
   if (isLoggedIn) {
     return <>{children}</>;
@@ -65,7 +57,7 @@ export function LoginGuard({ children, fallback }: LoginGuardProps) {
     return <>{fallback}</>;
   }
 
-  // 로그아웃 상태 - 기본 로그인 안내 화면
+  // 로그아웃 상태 - 기본 로그인 안내 화면 (웹 브라우저에서만 표시)
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md p-8 text-center">
@@ -77,27 +69,16 @@ export function LoginGuard({ children, fallback }: LoginGuardProps) {
             로그인이 필요합니다
           </h1>
           <p className="text-gray-600">
-            ChalPu 서비스를 이용하려면 로그인해주세요
+            Chalpu 서비스를 이용하려면 앱에서 로그인해주세요
           </p>
         </div>
 
         <div className="space-y-4">
-          {isAvailable ? (
-            <Button
-              onClick={handleNativeLogin}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              size="lg"
-            >
-              <FontAwesomeIcon icon={faLock} className="mr-2" />
-              로그인하기
-            </Button>
-          ) : (
-            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                ⚠️ 네이티브 앱에서만 로그인이 가능합니다
-              </p>
-            </div>
-          )}
+          <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              📱 앱에서 로그인 후 웹뷰로 이동해주세요
+            </p>
+          </div>
         </div>
 
         {process.env.NODE_ENV === "development" && (
@@ -122,7 +103,7 @@ export function LoginGuard({ children, fallback }: LoginGuardProps) {
               </Button>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              실제 앱에서는 네이티브 로그인이 자동으로 처리됩니다
+              실제 앱에서는 네이티브에서 로그인 후 토큰이 자동으로 주입됩니다
             </p>
           </div>
         )}

@@ -29,51 +29,28 @@ export const useAuth = () => {
         return;
       }
 
-      // 토큰이 만료되었거나 없으면 네이티브에서 새로 가져오기
-      if (isAvailable) {
-        if (tokens?.refreshToken) {
-          // 리프레시 토큰이 있으면 갱신 시도
-          try {
-            const newTokens = await bridge.refreshAuthToken(
-              tokens.refreshToken
-            );
-            setTokens(newTokens);
-            // 토큰 생성 시간 저장
-            localStorage.setItem(
-              "auth-storage-timestamp",
-              Date.now().toString()
-            );
-          } catch (error) {
-            console.warn("토큰 갱신 실패:", error);
-            // 갱신 실패 시 네이티브에서 새로 가져오기
-            try {
-              const nativeTokens = await bridge.getAuthTokens();
-              setTokens(nativeTokens);
-              localStorage.setItem(
-                "auth-storage-timestamp",
-                Date.now().toString()
-              );
-            } catch (nativeError) {
-              console.warn("네이티브 토큰 가져오기 실패:", nativeError);
-              clearTokens();
-            }
-          }
-        } else {
-          // 네이티브에서 토큰 가져오기
-          try {
-            const nativeTokens = await bridge.getAuthTokens();
-            setTokens(nativeTokens);
-            localStorage.setItem(
-              "auth-storage-timestamp",
-              Date.now().toString()
-            );
-          } catch (error) {
-            console.warn("네이티브 토큰 가져오기 실패:", error);
-            clearTokens();
-          }
+      // 네이티브가 로컬스토리지에 주입한 accessToken 확인
+      const accessToken = localStorage.getItem("accessToken");
+
+      if (accessToken) {
+        console.log("네이티브에서 주입한 accessToken 발견");
+        const tokenObject = {
+          accessToken: accessToken,
+          refreshToken: "", // 빈 문자열로 설정
+          expiresIn: 3600, // 기본값 1시간
+          tokenType: "Bearer",
+        };
+        setTokens(tokenObject);
+        // 토큰 생성 시간이 없으면 현재 시간으로 설정
+        if (!localStorage.getItem("auth-storage-timestamp")) {
+          localStorage.setItem("auth-storage-timestamp", Date.now().toString());
         }
+        console.log("네이티브에서 주입한 accessToken으로 로그인 성공");
       } else {
-        // 네이티브 브릿지가 없으면 로그아웃 상태
+        // accessToken을 찾지 못했으면 로그아웃 상태
+        console.log(
+          "로컬스토리지에서 accessToken을 찾을 수 없습니다. 로그아웃 상태로 설정합니다."
+        );
         clearTokens();
       }
     } catch (error) {
@@ -82,43 +59,43 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [
-    bridge,
-    isAvailable,
-    tokens,
-    setTokens,
-    setLoading,
-    clearTokens,
-    isTokenExpired,
-  ]);
+  }, [tokens, setTokens, setLoading, clearTokens, isTokenExpired]);
 
-  // 토큰 갱신
+  // 토큰 갱신 (네이티브에서 처리하므로 단순히 로컬스토리지 재확인)
   const refreshTokens = useCallback(async (): Promise<boolean> => {
-    if (!isAvailable || !tokens?.refreshToken) {
-      return false;
-    }
-
     try {
-      const newTokens = await bridge.refreshAuthToken(tokens.refreshToken);
-      setTokens(newTokens);
-      localStorage.setItem("auth-storage-timestamp", Date.now().toString());
-      return true;
+      // 로컬스토리지에서 최신 accessToken 확인
+      const accessToken = localStorage.getItem("accessToken");
+      if (accessToken) {
+        const tokenObject = {
+          accessToken: accessToken,
+          refreshToken: "",
+          expiresIn: 3600,
+          tokenType: "Bearer",
+        };
+        setTokens(tokenObject);
+        localStorage.setItem("auth-storage-timestamp", Date.now().toString());
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error("토큰 갱신 실패:", error);
       clearTokens();
       return false;
     }
-  }, [bridge, isAvailable, tokens?.refreshToken, setTokens, clearTokens]);
+  }, [setTokens, clearTokens]);
 
   // 로그아웃
   const logout = useCallback(async () => {
     try {
+      // 네이티브 브릿지가 있으면 네이티브 로그아웃 호출
       if (isAvailable) {
         await bridge.logout();
       }
     } catch (error) {
       console.warn("네이티브 로그아웃 실패:", error);
     } finally {
+      // 웹뷰 로컬스토리지 정리
       clearTokens();
       localStorage.removeItem("auth-storage-timestamp");
 
@@ -130,7 +107,7 @@ export const useAuth = () => {
     }
   }, [bridge, isAvailable, clearTokens, queryClient]);
 
-  // 유효한 액세스 토큰 가져오기 (자동 갱신 포함)
+  // 유효한 액세스 토큰 가져오기 (네이티브에서 갱신 처리)
   const getValidAccessToken = useCallback(async (): Promise<string | null> => {
     if (!tokens) return null;
 
@@ -139,7 +116,7 @@ export const useAuth = () => {
       return tokens.accessToken;
     }
 
-    // 토큰이 만료되었으면 갱신 시도
+    // 토큰이 만료되었으면 로컬스토리지에서 재확인
     const refreshSuccess = await refreshTokens();
     if (refreshSuccess) {
       const updatedTokens = useAuthStore.getState().tokens;
@@ -154,12 +131,13 @@ export const useAuth = () => {
     initializeTokens();
   }, [initializeTokens]);
 
-  // 토큰 만료 시간 자동 확인 (5분마다)
+  // 토큰 만료 시간 자동 확인 (5분마다, 네이티브에서 갱신 처리)
   useEffect(() => {
     if (!isLoggedIn || !tokens) return;
 
     const checkTokenExpiry = () => {
       if (isTokenExpired()) {
+        // 토큰이 만료되었으면 로컬스토리지에서 재확인
         refreshTokens();
       }
     };
