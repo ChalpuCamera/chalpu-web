@@ -53,6 +53,7 @@ jobs:
           rsync -avz --delete \
             --exclude='.git' \
             --exclude='.next/cache' \
+            --no-perms --no-owner --no-group \
             .next \
             node_modules \
             package.json \
