@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCamera, faTrash, faImage } from "@fortawesome/free-solid-svg-icons";
 import { uploadPhoto } from "@/utils/photoUpload";
+import { nativeBridge } from "@/utils/nativeBridge";
 
 interface PhotoUploadProps {
   storeId: number;
@@ -26,7 +27,6 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -58,20 +58,10 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     }
   };
 
-  const handleCameraInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
   const handleRemove = () => {
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-    if (cameraInputRef.current) {
-      cameraInputRef.current.value = "";
     }
   };
 
@@ -79,8 +69,43 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleTakePhoto = () => {
-    cameraInputRef.current?.click();
+  const handleTakePhoto = async () => {
+    if (nativeBridge.isAvailable()) {
+      try {
+        const result = await nativeBridge.openCamera({
+          quality: 80,
+          allowEdit: false,
+          encodingType: "JPEG",
+          mediaType: "PHOTO",
+        });
+
+        if (result.success && result.imageData) {
+          console.log("카메라 촬영 성공:", result.filePath);
+          // Base64 이미지 데이터를 File 객체로 변환
+          const byteString = atob(result.imageData.split(",")[1]);
+          const mimeString = result.imageData
+            .split(",")[0]
+            .split(":")[1]
+            .split(";")[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const file = new File([ab], "camera-photo.jpg", { type: mimeString });
+          handleFileSelect(file);
+        } else {
+          console.error("카메라 촬영 실패:", result.error);
+          onUploadError(result.error || "사진 촬영에 실패했습니다.");
+        }
+      } catch (error) {
+        console.error("카메라 호출 실패:", error);
+        onUploadError("카메라를 사용할 수 없습니다.");
+      }
+    } else {
+      console.log("네이티브 앱에서만 사용 가능합니다.");
+      onUploadError("네이티브 앱에서만 카메라 기능을 사용할 수 있습니다.");
+    }
   };
 
   return (
@@ -90,14 +115,6 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         type="file"
         accept="image/*"
         onChange={handleFileInputChange}
-        className="hidden"
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleCameraInputChange}
         className="hidden"
       />
 
