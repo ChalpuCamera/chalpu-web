@@ -113,8 +113,8 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 className="text-4xl text-gray-400 mx-auto"
               />
               <div>
-                <p className="text-sm font-medium text-gray-700">촬영</p>
-                <p className="text-xs text-gray-500 mt-1">카메라로 사진 촬영</p>
+                <p className="text-base font-medium text-gray-700">촬영</p>
+                <p className="text-sm text-gray-500 mt-1">카메라로 사진 촬영</p>
               </div>
             </div>
           </div>
@@ -129,10 +129,10 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 className="text-4xl text-gray-400 mx-auto"
               />
               <div>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-base font-medium text-gray-700">
                   앨범에서 선택
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   갤러리에서 사진 선택
                 </p>
               </div>
@@ -156,12 +156,12 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               disabled={isUploading}
               className="bg-red-500/90 hover:bg-red-500"
             >
-              <FontAwesomeIcon icon={faTrash} className="text-sm" />
+              <FontAwesomeIcon icon={faTrash} className="text-base" />
             </Button>
           </div>
           {isUploading && (
             <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-              <div className="text-white text-sm">업로드 중...</div>
+              <div className="text-white text-base">업로드 중...</div>
             </div>
           )}
         </div>
