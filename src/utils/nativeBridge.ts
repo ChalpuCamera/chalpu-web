@@ -31,7 +31,10 @@ declare global {
 export interface NativeBridgeMessage {
   type: string;
   data?: unknown;
-  callback?: string;
+}
+
+export interface NativeBridgeMessageWithCallback extends NativeBridgeMessage {
+  callback: string;
 }
 
 // 네이티브에서 호출할 수 있는 기능들
@@ -147,10 +150,15 @@ class NativeBridge implements NativeFunctions {
       const callbackId = `callback_${++this.callbackCounter}`;
       this.pendingCallbacks.set(callbackId, resolve);
 
+      // const messageWithCallback: NativeBridgeMessageWithCallback = {
+      //   type,
+      //   data,
+      //   callback: callbackId,
+      // };
+
       const message: NativeBridgeMessage = {
         type,
         data,
-        callback: callbackId,
       };
 
       const win = window as Window & {
