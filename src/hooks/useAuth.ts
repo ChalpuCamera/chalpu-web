@@ -16,6 +16,7 @@ export const useAuth = () => {
     clearTokens,
     isTokenExpired,
     getTokenExpiryTime,
+    initializeFromLocalStorage,
   } = useAuthStore();
 
   // 토큰 초기화
@@ -29,37 +30,21 @@ export const useAuth = () => {
         return;
       }
 
-      // 네이티브가 로컬스토리지에 주입한 accessToken 확인
-      const accessToken = localStorage.getItem("accessToken");
-
-      if (accessToken) {
-        console.log("네이티브에서 주입한 accessToken 발견");
-        const tokenObject = {
-          accessToken: accessToken,
-          refreshToken: "", // 빈 문자열로 설정
-          expiresIn: 3600, // 기본값 1시간
-          tokenType: "Bearer",
-        };
-        setTokens(tokenObject);
-        // 토큰 생성 시간이 없으면 현재 시간으로 설정
-        if (!localStorage.getItem("auth-storage-timestamp")) {
-          localStorage.setItem("auth-storage-timestamp", Date.now().toString());
-        }
-        console.log("네이티브에서 주입한 accessToken으로 로그인 성공");
-      } else {
-        // accessToken을 찾지 못했으면 로그아웃 상태
-        console.log(
-          "로컬스토리지에서 accessToken을 찾을 수 없습니다. 로그아웃 상태로 설정합니다."
-        );
-        clearTokens();
-      }
+      // 로컬스토리지에서 accessToken 확인 및 자동 로그인
+      initializeFromLocalStorage();
     } catch (error) {
       console.error("토큰 초기화 실패:", error);
       clearTokens();
     } finally {
       setLoading(false);
     }
-  }, [tokens, setTokens, setLoading, clearTokens, isTokenExpired]);
+  }, [
+    tokens,
+    setLoading,
+    clearTokens,
+    isTokenExpired,
+    initializeFromLocalStorage,
+  ]);
 
   // 토큰 갱신 (네이티브에서 처리하므로 단순히 로컬스토리지 재확인)
   const refreshTokens = useCallback(async (): Promise<boolean> => {

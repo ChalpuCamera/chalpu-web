@@ -13,6 +13,7 @@ interface AuthState {
   clearTokens: () => void;
   isTokenExpired: () => boolean;
   getTokenExpiryTime: () => number | null;
+  initializeFromLocalStorage: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,6 +29,33 @@ export const useAuthStore = create<AuthState>()(
           isLoggedIn: tokens !== null,
           isLoading: false,
         });
+      },
+
+      // 로컬스토리지에서 accessToken 확인 및 자동 로그인
+      initializeFromLocalStorage: () => {
+        const accessToken = localStorage.getItem("accessToken");
+        if (accessToken) {
+          const tokenObject = {
+            accessToken: accessToken,
+            refreshToken: "",
+            expiresIn: 3600,
+            tokenType: "Bearer",
+          };
+          set({
+            tokens: tokenObject,
+            isLoggedIn: true,
+            isLoading: false,
+          });
+          // 토큰 생성 시간이 없으면 현재 시간으로 설정
+          if (!localStorage.getItem("auth-storage-timestamp")) {
+            localStorage.setItem(
+              "auth-storage-timestamp",
+              Date.now().toString()
+            );
+          }
+        } else {
+          set({ isLoading: false });
+        }
       },
 
       setLoading: (loading) => {
@@ -47,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
         if (!state.tokens) return true;
 
         const expiryTime = state.tokens.expiresIn * 1000;
-        const tokenCreateTime = localStorage.getItem("auth-storage-timestamp");
+        const tokenCreateTime = localStorage.getItem("accessToken");
 
         if (!tokenCreateTime) return true;
 
