@@ -342,7 +342,7 @@ export function useNativeApp() {
 
       // 2. 커스텀 User-Agent 확인 (앱에서 설정한 경우)
       const userAgent = window.navigator.userAgent;
-      const hasCustomUserAgent = userAgent.includes("ChalPu");
+      const hasCustomUserAgent = userAgent.includes("Chalpu");
 
       // 3. 앱 설정이 있으면 네이티브 앱으로 간주
       const hasAppConfig = !!window.appConfig;
