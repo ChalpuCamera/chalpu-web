@@ -1,3 +1,32 @@
+import { useEffect, useState } from "react";
+
+// 네이티브 앱 통신을 위한 타입 선언
+declare global {
+  interface Window {
+    Android?: {
+      postMessage: (message: string) => void;
+    };
+    webkit?: {
+      messageHandlers?: {
+        iOS?: {
+          postMessage: (message: string) => void;
+        };
+      };
+    };
+    iOS?: {
+      postMessage: (message: string) => void;
+    };
+    receiveMessageFromApp?: (message: string) => void;
+    // 앱에서 주입하는 설정 객체
+    appConfig?: {
+      userId?: string;
+      token?: string;
+      apiUrl?: string;
+      [key: string]: string | undefined;
+    };
+  }
+}
+
 // 네이티브 브릿지 메시지 타입 정의
 export interface NativeBridgeMessage {
   type: string;
@@ -125,21 +154,26 @@ class NativeBridge implements NativeFunctions {
       };
 
       const win = window as Window & {
-        Android?: { receiveMessage?: (message: string) => void };
+        Android?: { postMessage?: (message: string) => void };
         webkit?: {
           messageHandlers?: {
-            chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
+            iOS?: { postMessage?: (message: string) => void };
           };
         };
+        iOS?: { postMessage?: (message: string) => void };
       };
 
       // Android WebView
-      if (win.Android?.receiveMessage) {
-        win.Android.receiveMessage(JSON.stringify(message));
+      if (win.Android?.postMessage) {
+        win.Android.postMessage(JSON.stringify(message));
       }
       // iOS WKWebView
-      else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
-        win.webkit.messageHandlers.chalpu.postMessage(message);
+      else if (win.webkit?.messageHandlers?.iOS?.postMessage) {
+        win.webkit.messageHandlers.iOS.postMessage(JSON.stringify(message));
+      }
+      // iOS 직접 브릿지
+      else if (win.iOS?.postMessage) {
+        win.iOS.postMessage(JSON.stringify(message));
       }
       // 웹뷰가 아닌 경우 또는 브릿지가 준비되지 않은 경우
       else {
@@ -285,34 +319,65 @@ class NativeBridge implements NativeFunctions {
   minimizeApp(): void {
     this.sendToNative("minimizeApp").catch(console.error);
   }
-
-  // 브릿지가 사용 가능한지 확인
-  isAvailable(): boolean {
-    if (typeof window === "undefined") return false;
-
-    const win = window as Window & {
-      Android?: { receiveMessage?: (message: string) => void };
-      webkit?: {
-        messageHandlers?: {
-          chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
-        };
-      };
-    };
-
-    return !!(
-      win.Android?.receiveMessage ||
-      win.webkit?.messageHandlers?.chalpu?.postMessage
-    );
-  }
 }
 
 // 싱글톤 인스턴스 생성
 export const nativeBridge = new NativeBridge();
 
-// React Hook으로 네이티브 브릿지 사용
-export const useNativeBridge = () => {
+// React Hook으로 네이티브 앱 사용
+export function useNativeApp() {
+  const [isWebView, setIsWebView] = useState(false);
+  const [appConfig, setAppConfig] = useState<Record<string, string>>({});
+
+  // WebView 환경 확인 및 앱 설정 로드
+  useEffect(() => {
+    const checkWebView = () => {
+      // 1. 브릿지 객체 확인
+      const hasBridge = !!(
+        window.Android ||
+        window.webkit?.messageHandlers?.iOS ||
+        window.iOS
+      );
+
+      // 2. User Agent로 모바일 앱 확인
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isMobileApp =
+        userAgent.includes("android") ||
+        userAgent.includes("iphone") ||
+        userAgent.includes("ipad");
+
+      // 3. 앱 설정이 있으면 네이티브 앱으로 간주
+      const hasAppConfig = !!window.appConfig;
+
+      const hasNativeApp = hasBridge || isMobileApp || hasAppConfig;
+      setIsWebView(hasNativeApp);
+
+      // 앱에서 주입한 설정 로드
+      if (window.appConfig) {
+        setAppConfig(window.appConfig as Record<string, string>);
+      }
+
+      // URL 파라미터에서 설정 로드
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlConfig: Record<string, string> = {};
+      urlParams.forEach((value, key) => {
+        urlConfig[key] = value;
+      });
+
+      if (Object.keys(urlConfig).length > 0) {
+        setAppConfig((prev) => ({ ...prev, ...urlConfig }));
+      }
+    };
+
+    checkWebView();
+  }, []);
+
   return {
     bridge: nativeBridge,
-    isAvailable: nativeBridge.isAvailable(),
+    isAvailable: isWebView,
+    appConfig,
   };
-};
+}
+
+// 기존 useNativeBridge 호환성을 위한 별칭
+export const useNativeBridge = useNativeApp;
