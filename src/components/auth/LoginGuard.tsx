@@ -16,20 +16,29 @@ interface LoginGuardProps {
 export function LoginGuard({ children }: LoginGuardProps) {
   const { isLoggedIn, isLoading, setTokens, clearTokens } = useAuthStore();
   const { bridge, isAvailable } = useNativeBridge();
+  
+  // 네이티브 로그인 시도 상태 관리
+  const [nativeLoginAttempted, setNativeLoginAttempted] = React.useState(false);
+  const [nativeLoginError, setNativeLoginError] = React.useState<string | null>(null);
 
-  // 네이티브 앱인데 로그인이 안되어 있으면 앱의 로그인 창으로 이동
+  // 네이티브 앱에서 로그인 시도 (한 번만)
   React.useEffect(() => {
-    if (isAvailable && !isLoggedIn && !isLoading) {
+    if (isAvailable && !isLoggedIn && !isLoading && !nativeLoginAttempted) {
+      setNativeLoginAttempted(true);
+      
       const showNativeLogin = async () => {
         try {
+          console.log('네이티브 로그인 창 호출 시도');
           await bridge.showLogin();
         } catch (error) {
           console.error("네이티브 로그인 창 호출 실패:", error);
+          setNativeLoginError(error instanceof Error ? error.message : '알 수 없는 에러');
         }
       };
+      
       showNativeLogin();
     }
-  }, [bridge, isAvailable, isLoggedIn, isLoading]);
+  }, [bridge, isAvailable, isLoggedIn, isLoading, nativeLoginAttempted]);
 
   // 개발 모드에서 임시 로그인 (테스트용)
   const handleDevLogin = () => {
@@ -44,6 +53,12 @@ export function LoginGuard({ children }: LoginGuardProps) {
     localStorage.setItem("auth-storage-timestamp", Date.now().toString());
   };
 
+  // 네이티브 로그인 재시도
+  const handleRetryNativeLogin = () => {
+    setNativeLoginAttempted(false);
+    setNativeLoginError(null);
+  };
+
   // 로딩 중일 때
   if (isLoading) {
     return (
@@ -56,25 +71,24 @@ export function LoginGuard({ children }: LoginGuardProps) {
     );
   }
 
-  // 네이티브 앱 && 로그인 상태에서는 LoginGuard 비활성화 (네이티브에서 로그인 처리)
+  // 로그인 성공 시 - 자식 컴포넌트 렌더링
   if (isAvailable && isLoggedIn) {
     return <>{children}</>;
   }
 
-  // 네이티브 앱인데 로그인이 안되어 있으면 앱의 로그인 창으로 이동
-  if (isAvailable && !isLoggedIn) {
-    // 로딩 화면 표시
+  // 네이티브 앱에서 로그인 시도 중
+  if (isAvailable && !nativeLoginAttempted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">앱의 로그인 창으로 이동 중...</p>
+          <p className="text-gray-600">네이티브 앱 로그인 준비 중...</p>
         </div>
       </div>
     );
   }
 
-  // 웹 브라우저에서 로그아웃 상태 - 기본 로그인 안내 화면
+  // 네이티브 앱에서 로그인 실패 또는 웹 브라우저
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md p-8 text-center">
@@ -86,15 +100,37 @@ export function LoginGuard({ children }: LoginGuardProps) {
             로그인이 필요합니다
           </h1>
           <p className="text-gray-600">
-            Chalpu 서비스를 이용하려면 앱에서 로그인해주세요
-            {isAvailable.toString()}
+            {isAvailable 
+              ? "네이티브 앱에서 로그인해주세요"
+              : "Chalpu 앱에서 로그인 후 이용해주세요"
+            }
           </p>
         </div>
+
+        {/* 네이티브 로그인 에러 표시 */}
+        {nativeLoginError && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+            <p className="text-sm text-red-800">
+              네이티브 로그인 실패: {nativeLoginError}
+            </p>
+            <Button
+              onClick={handleRetryNativeLogin}
+              variant="outline"
+              size="sm"
+              className="mt-2"
+            >
+              다시 시도
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              📱 앱에서 로그인 후 웹뷰로 이동해주세요
+              {isAvailable 
+                ? "📱 네이티브 앱에서 로그인해주세요"
+                : "📱 앱에서 로그인 후 웹뷰로 이동해주세요"
+              }
             </p>
           </div>
         </div>
@@ -122,11 +158,9 @@ export function LoginGuard({ children }: LoginGuardProps) {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>User Agent:</span>
-                  <span className="text-gray-500 truncate max-w-[200px]">
-                    {typeof window !== "undefined"
-                      ? window.navigator.userAgent.substring(0, 50) + "..."
-                      : "N/A"}
+                  <span>로그인 시도:</span>
+                  <span className={nativeLoginAttempted ? "text-green-600" : "text-yellow-600"}>
+                    {nativeLoginAttempted ? "✅ 시도됨" : "⏳ 대기중"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -139,18 +173,6 @@ export function LoginGuard({ children }: LoginGuardProps) {
                     }
                   >
                     {isLoggedIn ? "✅ 로그인됨" : "❌ 로그아웃됨"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>토큰:</span>
-                  <span
-                    className={
-                      isLoggedIn
-                        ? "text-green-600 font-medium"
-                        : "text-red-600 font-medium"
-                    }
-                  >
-                    {isLoggedIn ? "✅ 있음" : "❌ 없음"}
                   </span>
                 </div>
               </div>
@@ -173,10 +195,17 @@ export function LoginGuard({ children }: LoginGuardProps) {
               >
                 로그아웃 (테스트용)
               </Button>
+              {isAvailable && (
+                <Button
+                  onClick={handleRetryNativeLogin}
+                  variant="outline"
+                  className="w-full text-xs"
+                  size="sm"
+                >
+                  네이티브 로그인 재시도
+                </Button>
+              )}
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              실제 앱에서는 네이티브에서 로그인 후 토큰이 자동으로 주입됩니다
-            </p>
           </div>
         )}
       </Card>
