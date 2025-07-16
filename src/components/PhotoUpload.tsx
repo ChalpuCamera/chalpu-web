@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCamera, faTrash, faImage } from "@fortawesome/free-solid-svg-icons";
 import { uploadPhoto } from "@/utils/photoUpload";
-import { nativeBridge } from "@/utils/nativeBridge";
+import { useNativeBridge } from "@/utils/nativeBridge";
 
 interface PhotoUploadProps {
   storeId: number;
@@ -25,6 +25,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { bridge, isAvailable } = useNativeBridge();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,9 +71,9 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   const handleTakePhoto = async () => {
-    if (nativeBridge.isAvailable()) {
+    if (isAvailable) {
       try {
-        const result = await nativeBridge.openCamera({
+        const result = await bridge.openCamera({
           quality: 80,
           allowEdit: false,
           encodingType: "JPEG",
