@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useNativeBridge } from "@/utils/nativeBridge";
+import { AuthTokens, useNativeBridge } from "@/utils/nativeBridge";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 
@@ -17,28 +17,35 @@ export function LoginGuard({ children }: LoginGuardProps) {
   const { isLoggedIn, isLoading, setTokens, clearTokens } = useAuthStore();
   const { bridge, isAvailable } = useNativeBridge();
   
-  // 네이티브 로그인 시도 상태 관리
-  const [nativeLoginAttempted, setNativeLoginAttempted] = React.useState(false);
-  const [nativeLoginError, setNativeLoginError] = React.useState<string | null>(null);
+  // 토큰 로드 시도 상태 관리
+  const [tokenLoadAttempted, setTokenLoadAttempted] = React.useState(false);
+  const [tokenLoadError, setTokenLoadError] = React.useState<string | null>(null);
 
-  // 네이티브 앱에서 로그인 시도 (한 번만)
+  // 웹뷰 환경에서 네이티브 앱으로부터 토큰 받아오기
   React.useEffect(() => {
-    if (isAvailable && !isLoggedIn && !isLoading && !nativeLoginAttempted) {
-      setNativeLoginAttempted(true);
+    if (isAvailable && !isLoggedIn && !isLoading && !tokenLoadAttempted) {
+      setTokenLoadAttempted(true);
       
-      const showNativeLogin = async () => {
+      const loadTokenFromNative = async () => {
         try {
-          console.log('네이티브 로그인 창 호출 시도');
-          await bridge.showLogin();
+          console.log('네이티브 앱에서 토큰 가져오기 시도');
+          const tokens = localStorage.getItem("accessToken");
+          
+          if (tokens) {
+            setTokens(tokens as unknown as AuthTokens);
+            console.log('네이티브 앱에서 토큰 로드 성공');
+          } else {
+            throw new Error('앱에서 토큰을 받아올 수 없습니다');
+          }
         } catch (error) {
-          console.error("네이티브 로그인 창 호출 실패:", error);
-          setNativeLoginError(error instanceof Error ? error.message : '알 수 없는 에러');
+          console.error("네이티브 앱 토큰 로드 실패:", error);
+          setTokenLoadError(error instanceof Error ? error.message : '알 수 없는 에러');
         }
       };
       
-      showNativeLogin();
+      loadTokenFromNative();
     }
-  }, [bridge, isAvailable, isLoggedIn, isLoading, nativeLoginAttempted]);
+  }, [bridge, isAvailable, isLoggedIn, isLoading, tokenLoadAttempted, setTokens]);
 
   // 개발 모드에서 임시 로그인 (테스트용)
   const handleDevLogin = () => {
@@ -53,10 +60,10 @@ export function LoginGuard({ children }: LoginGuardProps) {
     localStorage.setItem("auth-storage-timestamp", Date.now().toString());
   };
 
-  // 네이티브 로그인 재시도
-  const handleRetryNativeLogin = () => {
-    setNativeLoginAttempted(false);
-    setNativeLoginError(null);
+  // 토큰 로드 재시도
+  const handleRetryTokenLoad = () => {
+    setTokenLoadAttempted(false);
+    setTokenLoadError(null);
   };
 
   // 로딩 중일 때
@@ -72,23 +79,23 @@ export function LoginGuard({ children }: LoginGuardProps) {
   }
 
   // 로그인 성공 시 - 자식 컴포넌트 렌더링
-  if (isAvailable && isLoggedIn) {
+  if (isLoggedIn) {
     return <>{children}</>;
   }
 
-  // 네이티브 앱에서 로그인 시도 중
-  if (isAvailable && !nativeLoginAttempted) {
+  // 웹뷰 환경에서 토큰 로드 중
+  if (isAvailable && !tokenLoadAttempted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">네이티브 앱 로그인 준비 중...</p>
+          <p className="text-gray-600">앱에서 로그인 정보를 가져오는 중...</p>
         </div>
       </div>
     );
   }
 
-  // 네이티브 앱에서 로그인 실패 또는 웹 브라우저
+  // 웹뷰 환경에서 토큰 로드 실패 또는 웹 브라우저
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md p-8 text-center">
@@ -101,20 +108,20 @@ export function LoginGuard({ children }: LoginGuardProps) {
           </h1>
           <p className="text-gray-600">
             {isAvailable 
-              ? "네이티브 앱에서 로그인해주세요"
+              ? "앱에서 로그인 후 다시 시도해주세요"
               : "Chalpu 앱에서 로그인 후 이용해주세요"
             }
           </p>
         </div>
 
-        {/* 네이티브 로그인 에러 표시 */}
-        {nativeLoginError && (
+        {/* 토큰 로드 에러 표시 */}
+        {tokenLoadError && (
           <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
             <p className="text-sm text-red-800">
-              네이티브 로그인 실패: {nativeLoginError}
+              로그인 정보 로드 실패: {tokenLoadError}
             </p>
             <Button
-              onClick={handleRetryNativeLogin}
+              onClick={handleRetryTokenLoad}
               variant="outline"
               size="sm"
               className="mt-2"
@@ -128,8 +135,8 @@ export function LoginGuard({ children }: LoginGuardProps) {
           <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
             <p className="text-sm text-blue-800">
               {isAvailable 
-                ? "📱 네이티브 앱에서 로그인해주세요"
-                : "📱 앱에서 로그인 후 웹뷰로 이동해주세요"
+                ? "📱 앱에서 로그인을 완료한 후 웹뷰로 이동해주세요"
+                : "📱 Chalpu 앱을 다운로드하여 로그인해주세요"
               }
             </p>
           </div>
@@ -158,9 +165,9 @@ export function LoginGuard({ children }: LoginGuardProps) {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>로그인 시도:</span>
-                  <span className={nativeLoginAttempted ? "text-green-600" : "text-yellow-600"}>
-                    {nativeLoginAttempted ? "✅ 시도됨" : "⏳ 대기중"}
+                  <span>토큰 로드 시도:</span>
+                  <span className={tokenLoadAttempted ? "text-green-600" : "text-yellow-600"}>
+                    {tokenLoadAttempted ? "✅ 시도됨" : "⏳ 대기중"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -173,6 +180,12 @@ export function LoginGuard({ children }: LoginGuardProps) {
                     }
                   >
                     {isLoggedIn ? "✅ 로그인됨" : "❌ 로그아웃됨"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>에러:</span>
+                  <span className={tokenLoadError ? "text-red-600" : "text-green-600"}>
+                    {tokenLoadError ? "❌ 있음" : "✅ 없음"}
                   </span>
                 </div>
               </div>
@@ -197,15 +210,18 @@ export function LoginGuard({ children }: LoginGuardProps) {
               </Button>
               {isAvailable && (
                 <Button
-                  onClick={handleRetryNativeLogin}
+                  onClick={handleRetryTokenLoad}
                   variant="outline"
                   className="w-full text-xs"
                   size="sm"
                 >
-                  네이티브 로그인 재시도
+                  토큰 로드 재시도
                 </Button>
               )}
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              앱에서 로그인 후 웹뷰로 이동하면 토큰이 자동으로 로드됩니다
+            </p>
           </div>
         )}
       </Card>
