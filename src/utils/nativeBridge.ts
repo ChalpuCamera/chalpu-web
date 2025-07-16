@@ -333,24 +333,26 @@ export function useNativeApp() {
   // WebView 환경 확인 및 앱 설정 로드
   useEffect(() => {
     const checkWebView = () => {
-      // 1. 브릿지 객체 확인
+      // 1. 브릿지 객체 확인 (가장 확실한 방법)
       const hasBridge = !!(
-        window.Android ||
-        window.webkit?.messageHandlers?.iOS ||
-        window.iOS
+        window.Android?.postMessage ||
+        window.webkit?.messageHandlers?.iOS?.postMessage ||
+        window.iOS?.postMessage
       );
 
-      // 2. User Agent로 모바일 앱 확인
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const isMobileApp =
-        userAgent.includes("android") ||
-        userAgent.includes("iphone") ||
-        userAgent.includes("ipad");
+      // 2. 커스텀 User-Agent 확인 (앱에서 설정한 경우)
+      const userAgent = window.navigator.userAgent;
+      const hasCustomUserAgent = userAgent.includes("ChalPu");
 
       // 3. 앱 설정이 있으면 네이티브 앱으로 간주
       const hasAppConfig = !!window.appConfig;
 
-      const hasNativeApp = hasBridge || isMobileApp || hasAppConfig;
+      // 4. URL 파라미터로 앱 환경 확인
+      const urlParams = new URLSearchParams(window.location.search);
+      const isFromApp = urlParams.has("fromApp") || urlParams.has("app");
+
+      // 브릿지 객체가 있거나 명시적으로 앱에서 왔다고 표시된 경우만 웹뷰로 간주
+      const hasNativeApp = hasBridge || hasCustomUserAgent || hasAppConfig || isFromApp;
       setIsWebView(hasNativeApp);
 
       // 앱에서 주입한 설정 로드
@@ -359,7 +361,6 @@ export function useNativeApp() {
       }
 
       // URL 파라미터에서 설정 로드
-      const urlParams = new URLSearchParams(window.location.search);
       const urlConfig: Record<string, string> = {};
       urlParams.forEach((value, key) => {
         urlConfig[key] = value;
