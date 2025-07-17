@@ -110,5 +110,6 @@ export const useAuth = () => {
     refreshTokens,
     getValidAccessToken,
     initializeTokens,
+    tokenExpiryTime: null,
   };
 };

@@ -11,7 +11,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
   getValidAccessToken: () => Promise<string | null>;
-  initializeTokens: () => Promise<void>;
+  initializeTokens: () => void;
   tokenExpiryTime: number | null;
 }
 
