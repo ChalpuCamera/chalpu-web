@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +10,14 @@ import { useCreateStore } from "@/hooks/useStore";
 import { CreateStoreRequest } from "@/lib/api/types";
 import { openAddressSearch } from "@/utils/addressSearch";
 import NavBar from "@/components/ui/navbar";
+import { useAlertDialog } from "@/components/ui/alert-dialog";
 
 const AddStorePage: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo"); // 돌아갈 페이지 확인
   const createStoreMutation = useCreateStore();
+  const { showAlert, AlertDialogComponent } = useAlertDialog();
 
   const [formData, setFormData] = useState<CreateStoreRequest>({
     storeName: "",
@@ -29,7 +33,8 @@ const AddStorePage: React.FC = () => {
   const [endTime, setEndTime] = useState("22:00");
 
   const handleCancel = () => {
-    router.push("/mypage");
+    // returnTo가 있으면 해당 페이지로, 없으면 마이페이지로
+    router.push(returnTo || "/mypage");
   };
 
   const handleInputChange = (
@@ -65,12 +70,20 @@ const AddStorePage: React.FC = () => {
         },
         (error: Error) => {
           console.error("주소 검색 오류:", error);
-          alert("주소 검색 중 오류가 발생했습니다. 다시 시도해주세요.");
+          showAlert({
+            title: "주소 검색 오류",
+            message: "주소 검색 중 오류가 발생했습니다. 다시 시도해주세요.",
+            type: "error"
+          });
         }
       );
     } catch (error) {
       console.error("주소 검색 실행 오류:", error);
-      alert("주소 검색을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
+      showAlert({
+        title: "주소 검색 오류",
+        message: "주소 검색을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        type: "error"
+      });
     }
   };
 
@@ -79,7 +92,11 @@ const AddStorePage: React.FC = () => {
 
     // 최소한 매장명은 입력되어야 함
     if (!formData.storeName?.trim()) {
-      alert("매장명을 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "매장명을 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
@@ -98,34 +115,61 @@ const AddStorePage: React.FC = () => {
       };
 
       await createStoreMutation.mutateAsync(submitData);
-      alert("매장이 성공적으로 등록되었습니다.");
-
+      
       // 캐시 무효화가 완료될 때까지 잠시 대기
       await new Promise((resolve) => setTimeout(resolve, 100));
-
-      router.push("/mypage");
+      
+      showAlert({
+        title: "등록 완료",
+        message: "매장이 성공적으로 등록되었습니다.",
+        type: "success",
+        onConfirm: () => {
+          // returnTo가 있으면 해당 페이지로, 없으면 마이페이지로
+          router.push(returnTo || "/mypage");
+        }
+      });
     } catch (error) {
       console.error("매장 등록 실패:", error);
 
       // 에러 메시지에 따라 다른 알림 표시
       if (error instanceof Error) {
         if (error.message.includes("401") || error.message.includes("인증")) {
-          alert("인증이 만료되었습니다. 다시 로그인해주세요.");
+          showAlert({
+            title: "인증 오류",
+            message: "인증이 만료되었습니다. 다시 로그인해주세요.",
+            type: "error"
+          });
         } else if (
           error.message.includes("400") ||
           error.message.includes("잘못된")
         ) {
-          alert("입력 정보를 확인해주세요.");
+          showAlert({
+            title: "입력 오류",
+            message: "입력 정보를 확인해주세요.",
+            type: "error"
+          });
         } else if (
           error.message.includes("409") ||
           error.message.includes("중복")
         ) {
-          alert("이미 등록된 매장입니다.");
+          showAlert({
+            title: "중복 등록",
+            message: "이미 등록된 매장입니다.",
+            type: "error"
+          });
         } else {
-          alert(`매장 등록에 실패했습니다: ${error.message}`);
+          showAlert({
+            title: "등록 실패",
+            message: `매장 등록에 실패했습니다: ${error.message}`,
+            type: "error"
+          });
         }
       } else {
-        alert("매장 등록에 실패했습니다. 다시 시도해주세요.");
+        showAlert({
+          title: "등록 실패",
+          message: "매장 등록에 실패했습니다. 다시 시도해주세요.",
+          type: "error"
+        });
       }
     }
   };
@@ -270,6 +314,7 @@ const AddStorePage: React.FC = () => {
           </div>
         </form>
       </div>
+      {AlertDialogComponent}
     </div>
   );
 };

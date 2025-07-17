@@ -20,9 +20,11 @@ import { useAuth } from "@/hooks/useAuth";
 import StoreEditDialog from "@/components/StoreEditDialog";
 import { UpdateStoreRequest } from "@/lib/api/types";
 import NavBar from "@/components/ui/navbar";
+import { useAlertDialog } from "@/components/ui/alert-dialog";
 
 const MyPage: React.FC = () => {
   const router = useRouter();
+  const { showAlert, AlertDialogComponent } = useAlertDialog();
 
   // 인증 상태 관리
   const { logout } = useAuth();
@@ -115,41 +117,70 @@ const MyPage: React.FC = () => {
   };
 
   const handleDeleteStore = async (storeId: number, storeName: string) => {
-    const confirmDelete = window.confirm(
-      `"${storeName}" 매장을 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
-    );
+    showAlert({
+      title: "매장 삭제 확인",
+      message: `"${storeName}" 매장을 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      type: "warning",
+      confirmText: "삭제",
+      cancelText: "취소",
+      onConfirm: async () => {
+        try {
+          await deleteStoreMutation.mutateAsync(storeId);
+          
+          // 삭제된 매장이 선택된 매장이었다면 첫 번째 매장으로 선택 변경
+          if (selectedStoreIndex >= stores.length - 1) {
+            setSelectedStoreIndex(0);
+          }
+          
+          showAlert({
+            title: "삭제 완료",
+            message: "매장이 성공적으로 삭제되었습니다.",
+            type: "success"
+          });
+        } catch (error) {
+          console.error("매장 삭제 실패:", error);
 
-    if (!confirmDelete) return;
-
-    try {
-      await deleteStoreMutation.mutateAsync(storeId);
-      alert("매장이 성공적으로 삭제되었습니다.");
-
-      // 삭제된 매장이 선택된 매장이었다면 첫 번째 매장으로 선택 변경
-      if (selectedStoreIndex >= stores.length - 1) {
-        setSelectedStoreIndex(0);
-      }
-    } catch (error) {
-      console.error("매장 삭제 실패:", error);
-
-      // 에러 메시지에 따라 다른 알림 표시
-      if (error instanceof Error) {
-        if (error.message.includes("401") || error.message.includes("인증")) {
-          alert("인증이 만료되었습니다. 다시 로그인해주세요.");
-        } else if (
-          error.message.includes("403") ||
-          error.message.includes("권한")
-        ) {
-          alert("매장을 삭제할 권한이 없습니다.");
-        } else if (error.message.includes("404")) {
-          alert("매장을 찾을 수 없습니다.");
-        } else {
-          alert(`매장 삭제에 실패했습니다: ${error.message}`);
+          // 에러 메시지에 따라 다른 알림 표시
+          if (error instanceof Error) {
+            if (error.message.includes("401") || error.message.includes("인증")) {
+              showAlert({
+                title: "인증 오류",
+                message: "인증이 만료되었습니다. 다시 로그인해주세요.",
+                type: "error"
+              });
+            } else if (
+              error.message.includes("403") ||
+              error.message.includes("권한")
+            ) {
+              showAlert({
+                title: "권한 오류",
+                message: "매장을 삭제할 권한이 없습니다.",
+                type: "error"
+              });
+            } else if (error.message.includes("404")) {
+              showAlert({
+                title: "매장 없음",
+                message: "매장을 찾을 수 없습니다.",
+                type: "error"
+              });
+            } else {
+              showAlert({
+                title: "삭제 실패",
+                message: `매장 삭제에 실패했습니다: ${error.message}`,
+                type: "error"
+              });
+            }
+          } else {
+            showAlert({
+              title: "삭제 실패",
+              message: "매장 삭제에 실패했습니다. 다시 시도해주세요.",
+              type: "error"
+            });
+          }
         }
-      } else {
-        alert("매장 삭제에 실패했습니다. 다시 시도해주세요.");
-      }
-    }
+      },
+      onCancel: () => {}
+    });
   };
 
   return (
@@ -547,6 +578,7 @@ const MyPage: React.FC = () => {
           placeholder={editDialog.placeholder}
         />
       )}
+      {AlertDialogComponent}
     </div>
   );
 };

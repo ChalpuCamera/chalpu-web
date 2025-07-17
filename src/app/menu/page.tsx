@@ -21,11 +21,13 @@ import { useFoodsByStore, useDeleteFood } from "@/hooks/useFood";
 import { Food } from "@/lib/api/types";
 import Image from "next/image";
 import NavBar from "@/components/ui/navbar";
+import { useAlertDialog } from "@/components/ui/alert-dialog";
 
 const MenuPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlStoreId = searchParams.get("storeId");
+  const { showAlert, AlertDialogComponent } = useAlertDialog();
 
   // 매장 목록 조회
   const { data: storesData } = useMyStores({
@@ -98,9 +100,18 @@ const MenuPage: React.FC = () => {
     }
   }, [stores.length, selectedStoreIndex]);
 
+  // 등록된 매장이 없을 때 매장 생성 페이지로 이동하는 함수
+  const handleCreateStore = () => {
+    router.push("/store/add?returnTo=/menu");
+  };
+
   const handleAddMenu = () => {
     if (!selectedStore) {
-      alert("매장을 선택해주세요.");
+      showAlert({
+        title: "매장 선택 필요",
+        message: "매장을 선택해주세요.",
+        type: "warning",
+      });
       return;
     }
     router.push(`/menu/add?storeId=${selectedStore.storeId}`);
@@ -116,35 +127,66 @@ const MenuPage: React.FC = () => {
   };
 
   const handleDeleteMenu = async (foodId: number, foodName: string) => {
-    const confirmDelete = window.confirm(
-      `"${foodName}" 메뉴를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
-    );
+    showAlert({
+      title: "메뉴 삭제 확인",
+      message: `"${foodName}" 메뉴를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      type: "warning",
+      confirmText: "삭제",
+      cancelText: "취소",
+      onConfirm: async () => {
+        try {
+          await deleteFoodMutation.mutateAsync(foodId);
+          showAlert({
+            title: "삭제 완료",
+            message: "메뉴가 성공적으로 삭제되었습니다.",
+            type: "success",
+          });
+        } catch (error) {
+          console.error("메뉴 삭제 실패:", error);
 
-    if (!confirmDelete) return;
-
-    try {
-      await deleteFoodMutation.mutateAsync(foodId);
-      alert("메뉴가 성공적으로 삭제되었습니다.");
-    } catch (error) {
-      console.error("메뉴 삭제 실패:", error);
-
-      if (error instanceof Error) {
-        if (error.message.includes("401") || error.message.includes("인증")) {
-          alert("인증이 만료되었습니다. 다시 로그인해주세요.");
-        } else if (
-          error.message.includes("403") ||
-          error.message.includes("권한")
-        ) {
-          alert("메뉴를 삭제할 권한이 없습니다.");
-        } else if (error.message.includes("404")) {
-          alert("메뉴를 찾을 수 없습니다.");
-        } else {
-          alert(`메뉴 삭제에 실패했습니다: ${error.message}`);
+          if (error instanceof Error) {
+            if (
+              error.message.includes("401") ||
+              error.message.includes("인증")
+            ) {
+              showAlert({
+                title: "인증 오류",
+                message: "인증이 만료되었습니다. 다시 로그인해주세요.",
+                type: "error",
+              });
+            } else if (
+              error.message.includes("403") ||
+              error.message.includes("권한")
+            ) {
+              showAlert({
+                title: "권한 오류",
+                message: "메뉴를 삭제할 권한이 없습니다.",
+                type: "error",
+              });
+            } else if (error.message.includes("404")) {
+              showAlert({
+                title: "메뉴 없음",
+                message: "메뉴를 찾을 수 없습니다.",
+                type: "error",
+              });
+            } else {
+              showAlert({
+                title: "삭제 실패",
+                message: `메뉴 삭제에 실패했습니다: ${error.message}`,
+                type: "error",
+              });
+            }
+          } else {
+            showAlert({
+              title: "삭제 실패",
+              message: "메뉴 삭제에 실패했습니다. 다시 시도해주세요.",
+              type: "error",
+            });
+          }
         }
-      } else {
-        alert("메뉴 삭제에 실패했습니다. 다시 시도해주세요.");
-      }
-    }
+      },
+      onCancel: () => {},
+    });
   };
 
   // 가격 포맷팅 함수
@@ -154,23 +196,45 @@ const MenuPage: React.FC = () => {
 
   // 음식 이미지 URL 가져오기
   const getFoodImageUrl = (food: Food) => {
-    // 업로드된 사진이 있으면 대표 사진 우선, 없으면 첫 번째 사진 사용
-    if (food.photos && food.photos.length > 0) {
-      const featuredPhoto = food.photos.find((photo) => photo.isFeatured);
-      if (featuredPhoto) {
-        return featuredPhoto.imageUrl;
-      }
-      return food.photos[0].imageUrl;
-    }
-
-    // 없으면 null 반환 (아이콘 표시)
-    return null;
+    // thumbnailUrl이 있으면 사용, 없으면 null 반환
+    return food.thumbnailUrl || null;
   };
+
+  // 매장이 없는 경우 안내 화면 표시
+  if (storesData && !hasStores) {
+    return (
+      <div className="bg-white">
+        <NavBar title="메뉴 관리" onBack={() => router.push("/")} />
+
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div className="text-center">
+            <FontAwesomeIcon
+              icon={faPlus}
+              className="text-6xl text-gray-300 mb-6"
+            />
+            <h2 className="text-xl font-semibold text-gray-700 mb-3">
+              등록된 매장이 없습니다
+            </h2>
+            <p className="text-gray-500 mb-8">
+              메뉴를 관리하려면 먼저 매장을 생성해주세요.
+            </p>
+            <Button
+              onClick={handleCreateStore}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg"
+            >
+              매장 생성하기
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white">
       <NavBar
         title="메뉴 관리"
+        onBack={() => router.push("/")}
         rightElement={
           hasStores ? (
             <Button
@@ -338,6 +402,7 @@ const MenuPage: React.FC = () => {
           ))
         )}
       </div>
+      {AlertDialogComponent}
     </div>
   );
 };
