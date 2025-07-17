@@ -11,14 +11,12 @@ interface AuthState {
   setTokens: (tokens: AuthTokens | null) => void;
   setLoading: (loading: boolean) => void;
   clearTokens: () => void;
-  isTokenExpired: () => boolean;
-  getTokenExpiryTime: () => number | null;
   initializeFromLocalStorage: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       tokens: null,
       isLoggedIn: false,
       isLoading: true,
@@ -30,6 +28,7 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
         });
       },
+
 
       // 로컬스토리지에서 accessToken 확인 및 자동 로그인
       initializeFromLocalStorage: () => {
@@ -63,36 +62,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearTokens: () => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("auth-storage-timestamp");
         set({
           tokens: null,
           isLoggedIn: false,
           isLoading: false,
         });
-      },
-
-      isTokenExpired: () => {
-        const state = get();
-        if (!state.tokens) return true;
-
-        const expiryTime = state.tokens.expiresIn * 1000;
-        const tokenCreateTime = localStorage.getItem("accessToken");
-
-        if (!tokenCreateTime) return true;
-
-        const currentTime = Date.now();
-        const tokenAge = currentTime - parseInt(tokenCreateTime);
-
-        return tokenAge >= expiryTime;
-      },
-
-      getTokenExpiryTime: () => {
-        const state = get();
-        if (!state.tokens) return null;
-
-        const tokenCreateTime = localStorage.getItem("auth-storage-timestamp");
-        if (!tokenCreateTime) return null;
-
-        return parseInt(tokenCreateTime) + state.tokens.expiresIn * 1000;
       },
     }),
     {
@@ -103,10 +79,6 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // 토큰 만료 확인
-          if (state.isTokenExpired()) {
-            state.clearTokens();
-          }
           state.setLoading(false);
         }
       },

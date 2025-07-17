@@ -14,22 +14,14 @@ export const useAuth = () => {
     setTokens,
     setLoading,
     clearTokens,
-    isTokenExpired,
-    getTokenExpiryTime,
     initializeFromLocalStorage,
   } = useAuthStore();
 
   // 토큰 초기화
-  const initializeTokens = useCallback(async () => {
+  const initializeTokens = useCallback(() => {
     setLoading(true);
 
     try {
-      // 현재 토큰이 유효한지 확인
-      if (tokens && !isTokenExpired()) {
-        setLoading(false);
-        return;
-      }
-
       // 로컬스토리지에서 accessToken 확인 및 자동 로그인
       initializeFromLocalStorage();
     } catch (error) {
@@ -39,10 +31,8 @@ export const useAuth = () => {
       setLoading(false);
     }
   }, [
-    tokens,
     setLoading,
     clearTokens,
-    isTokenExpired,
     initializeFromLocalStorage,
   ]);
 
@@ -82,7 +72,6 @@ export const useAuth = () => {
     } finally {
       // 웹뷰 로컬스토리지 정리
       clearTokens();
-      localStorage.removeItem("auth-storage-timestamp");
 
       // 사용자 정보 캐시 삭제
       queryClient.removeQueries({ queryKey: userKeys.all });
@@ -92,44 +81,26 @@ export const useAuth = () => {
     }
   }, [bridge, isAvailable, clearTokens, queryClient]);
 
-  // 유효한 액세스 토큰 가져오기 (네이티브에서 갱신 처리)
+  // 유효한 액세스 토큰 가져오기
   const getValidAccessToken = useCallback(async (): Promise<string | null> => {
-    if (!tokens) return null;
-
-    // 토큰이 만료되지 않았으면 그대로 반환
-    if (!isTokenExpired()) {
-      return tokens.accessToken;
+    if (!tokens) {
+      // 토큰이 없으면 로컬스토리지에서 재확인
+      const refreshSuccess = await refreshTokens();
+      if (refreshSuccess) {
+        const updatedTokens = useAuthStore.getState().tokens;
+        return updatedTokens?.accessToken || null;
+      }
+      return null;
     }
 
-    // 토큰이 만료되었으면 로컬스토리지에서 재확인
-    const refreshSuccess = await refreshTokens();
-    if (refreshSuccess) {
-      const updatedTokens = useAuthStore.getState().tokens;
-      return updatedTokens?.accessToken || null;
-    }
-
-    return null;
-  }, [tokens, isTokenExpired, refreshTokens]);
+    return tokens.accessToken;
+  }, [tokens, refreshTokens]);
 
   // 컴포넌트 마운트 시 토큰 초기화
   useEffect(() => {
     initializeTokens();
   }, [initializeTokens]);
 
-  // 토큰 만료 시간 자동 확인 (5분마다, 네이티브에서 갱신 처리)
-  useEffect(() => {
-    if (!isLoggedIn || !tokens) return;
-
-    const checkTokenExpiry = () => {
-      if (isTokenExpired()) {
-        // 토큰이 만료되었으면 로컬스토리지에서 재확인
-        refreshTokens();
-      }
-    };
-
-    const interval = setInterval(checkTokenExpiry, 5 * 60 * 1000); // 5분마다 확인
-    return () => clearInterval(interval);
-  }, [isLoggedIn, tokens, isTokenExpired, refreshTokens]);
 
   return {
     tokens,
@@ -139,6 +110,5 @@ export const useAuth = () => {
     refreshTokens,
     getValidAccessToken,
     initializeTokens,
-    tokenExpiryTime: getTokenExpiryTime(),
   };
 };

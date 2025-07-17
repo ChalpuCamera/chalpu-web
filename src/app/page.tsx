@@ -41,7 +41,6 @@ export default function Home() {
     tokens,
     isLoading: authLoading,
     isLoggedIn,
-    getTokenExpiryTime,
   } = useAuthStore();
   const { logout } = useAuth(); // 로그아웃 함수만 훅에서 가져오기
 
@@ -120,7 +119,7 @@ export default function Home() {
 
   // 개발 환경에서 캐시 정보 표시
   const cacheInfo = getCacheInfo();
-  const tokenExpiryTime = getTokenExpiryTime();
+  const tokenExpiryTime = tokens?.expiresIn;
   const showDevInfo = process.env.NODE_ENV === "development";
 
   return (
