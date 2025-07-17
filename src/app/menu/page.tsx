@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowLeft,
   faPlus,
   faEdit,
   faTrash,
@@ -21,6 +20,7 @@ import { useMyStores } from "@/hooks/useStore";
 import { useFoodsByStore, useDeleteFood } from "@/hooks/useFood";
 import { Food } from "@/lib/api/types";
 import Image from "next/image";
+import NavBar from "@/components/ui/navbar";
 
 const MenuPage: React.FC = () => {
   const router = useRouter();
@@ -28,7 +28,7 @@ const MenuPage: React.FC = () => {
   const urlStoreId = searchParams.get("storeId");
 
   // 매장 목록 조회
-  const { data: storesData, isLoading: storesLoading } = useMyStores({
+  const { data: storesData } = useMyStores({
     page: 0,
     size: 20,
   });
@@ -97,10 +97,6 @@ const MenuPage: React.FC = () => {
       setSelectedStoreIndex(0);
     }
   }, [stores.length, selectedStoreIndex]);
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleAddMenu = () => {
     if (!selectedStore) {
@@ -171,53 +167,26 @@ const MenuPage: React.FC = () => {
     return null;
   };
 
-  if (storesLoading) {
-    return (
-      <div className="w-[375px] min-h-[762px] bg-white relative pb-16">
-        <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasStores) {
-    return (
-      <div className="w-[375px] min-h-[762px] bg-white relative pb-16">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">등록된 매장이 없습니다.</p>
-            <Button onClick={() => router.push("/store/add")}>
-              첫 번째 매장 등록하기
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">메뉴 관리</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            onClick={handleAddMenu}
-          >
-            <FontAwesomeIcon icon={faPlus} className="text-gray-600 text-lg" />
-          </Button>
-        </div>
-      </div>
+      <NavBar
+        title="메뉴 관리"
+        rightElement={
+          hasStores ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={handleAddMenu}
+            >
+              <FontAwesomeIcon
+                icon={faPlus}
+                className="text-gray-600 text-lg"
+              />
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Store Selector */}
       <div className="mb-6">

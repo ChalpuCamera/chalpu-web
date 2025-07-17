@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowLeft,
   faPlus,
   faStore,
   faEdit,
@@ -20,6 +19,7 @@ import { useMyStores, useDeleteStore } from "@/hooks/useStore";
 import { useAuth } from "@/hooks/useAuth";
 import StoreEditDialog from "@/components/StoreEditDialog";
 import { UpdateStoreRequest } from "@/lib/api/types";
+import NavBar from "@/components/ui/navbar";
 
 const MyPage: React.FC = () => {
   const router = useRouter();
@@ -75,10 +75,6 @@ const MyPage: React.FC = () => {
       setSelectedStoreIndex(0);
     }
   }, [stores.length, selectedStoreIndex]);
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleLogout = async () => {
     try {
@@ -158,20 +154,7 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">마이페이지</h1>
-          <div className="w-5"></div>
-        </div>
-      </div>
-
+      <NavBar title="마이페이지" />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         {/* Store Management Section */}

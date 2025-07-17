@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChalPu",
+  title: "Chalpu",
   description: "음식 촬영 가이드 웹뷰",
 };
 

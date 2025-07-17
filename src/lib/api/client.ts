@@ -18,9 +18,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // zustand 스토어에서 토큰 가져오기
-    const { tokens, isTokenExpired } = useAuthStore.getState();
+    const { tokens } = useAuthStore.getState();
 
-    if (tokens && !isTokenExpired()) {
+    if (tokens) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
 
@@ -49,9 +49,6 @@ apiClient.interceptors.response.use(
       clearTokens();
 
       console.log("토큰 만료로 인한 401 에러 - 로그아웃 처리");
-
-      // 토큰 관련 로컬 스토리지 데이터 삭제
-      localStorage.removeItem("auth-storage-timestamp");
 
       return Promise.reject(
         new Error("인증이 만료되었습니다. 다시 로그인해주세요.")

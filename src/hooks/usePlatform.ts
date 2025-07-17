@@ -63,7 +63,7 @@ export const usePlatform = (): PlatformInfo => {
     }
 
     // 커스텀 앱에서 설정한 User-Agent 확인
-    if (userAgent.includes("ChalPu")) {
+    if (userAgent.includes("Chalpu")) {
       isWebView = true;
     }
 

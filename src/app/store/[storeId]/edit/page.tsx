@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { useStore, useUpdateStore } from "@/hooks/useStore";
 import { UpdateStoreRequest } from "@/lib/api/types";
 import { openAddressSearch } from "@/utils/addressSearch";
+import NavBar from "@/components/ui/navbar";
 
 const EditStorePage: React.FC = () => {
   const router = useRouter();
@@ -61,16 +60,6 @@ const EditStorePage: React.FC = () => {
       setHasChanges(hasAnyChanges);
     }
   }, [formData, store]);
-
-  const handleBack = () => {
-    if (hasChanges) {
-      const confirmLeave = window.confirm(
-        "저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?"
-      );
-      if (!confirmLeave) return;
-    }
-    router.back();
-  };
 
   const handleCancel = () => {
     if (hasChanges) {
@@ -211,7 +200,7 @@ const EditStorePage: React.FC = () => {
       <div className="bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">매장 정보를 찾을 수 없습니다.</p>
-          <Button onClick={handleBack} className="mt-4">
+          <Button onClick={() => router.back()} className="mt-4">
             돌아가기
           </Button>
         </div>
@@ -221,20 +210,7 @@ const EditStorePage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">매장 수정</h1>
-          <div className="w-8"></div>
-        </div>
-      </div>
-
+      <NavBar title="매장 수정" />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">

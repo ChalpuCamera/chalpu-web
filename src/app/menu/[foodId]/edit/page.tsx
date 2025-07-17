@@ -2,11 +2,10 @@
 
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { useFood, useUpdateFood } from "@/hooks/useFood";
 import { UpdateFoodRequest } from "@/lib/api/types";
 import MenuForm from "@/components/MenuForm";
+import NavBar from "@/components/ui/navbar";
 
 const EditMenuPage: React.FC = () => {
   const router = useRouter();
@@ -22,10 +21,6 @@ const EditMenuPage: React.FC = () => {
   } = useFood(foodId);
 
   const food = foodData?.result;
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleSubmit = async (data: UpdateFoodRequest) => {
     const result = await updateFoodMutation.mutateAsync({
@@ -68,20 +63,7 @@ const EditMenuPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">메뉴 수정</h1>
-          <div className="w-8"></div>
-        </div>
-      </div>
-
+      <NavBar title="메뉴 수정" />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         <MenuForm

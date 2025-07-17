@@ -2,21 +2,16 @@
 
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { useCreateFood } from "@/hooks/useFood";
 import { CreateFoodRequest, UpdateFoodRequest } from "@/lib/api/types";
 import MenuForm from "@/components/MenuForm";
+import NavBar from "@/components/ui/navbar";
 
 const AddMenuPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const storeId = parseInt(searchParams.get("storeId") || "0");
   const createFoodMutation = useCreateFood();
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleSubmit = async (data: CreateFoodRequest) => {
     const result = await createFoodMutation.mutateAsync({
@@ -31,20 +26,7 @@ const AddMenuPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">메뉴 등록</h1>
-          <div className="w-8"></div>
-        </div>
-      </div>
-
+      <NavBar title="메뉴 등록" />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         <MenuForm
