@@ -65,32 +65,17 @@ export const photoApi = {
     );
   },
 
-  // 음식별 사진 목록 조회
-  getPhotosByFood: (
-    foodItemId: number,
-    params?: PageRequest
-  ): Promise<PagedResult<Photo>> => {
-    const searchParams = new URLSearchParams();
-
-    if (params?.page !== undefined) {
-      searchParams.append("page", params.page.toString());
-    }
-    if (params?.size !== undefined) {
-      searchParams.append("size", params.size.toString());
-    }
-    if (params?.sort) {
-      params.sort.forEach((sortParam) => {
-        searchParams.append("sort", sortParam);
-      });
-    }
-
-    const queryString = searchParams.toString();
-    const endpoint = queryString
-      ? `/api/photos/food/${foodItemId}?${queryString}`
-      : `/api/photos/food/${foodItemId}`;
-
-    return apiRequest<PagedResult<Photo>>(endpoint).then(
-      (response) => response.result
-    );
+  // 음식별 사진 목록 조회 (임시로 비활성화 - API 수정 후 재활성화)
+  getPhotosByFood: (): Promise<PagedResult<Photo>> => {
+    // 임시로 빈 결과 반환
+    return Promise.resolve({
+      content: [],
+      page: 0,
+      size: 0,
+      totalElements: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
+    });
   },
 };

@@ -23,15 +23,15 @@ export const usePhotosByStore = (
   });
 };
 
-// 음식별 사진 목록 조회 훅
+// 음식별 사진 목록 조회 훅 (임시로 비활성화 - API 수정 후 재활성화)
 export const usePhotosByFood = (
   foodItemId: number,
   params?: { page?: number; size?: number; sort?: string[] }
 ) => {
   return useQuery({
     queryKey: ["photos", "food", foodItemId, params],
-    queryFn: () => photoApi.getPhotosByFood(foodItemId, params),
-    enabled: !!foodItemId,
+    queryFn: () => Promise.resolve({ content: [] }), // 임시로 빈 배열 반환
+    enabled: false, // 비활성화
   });
 };
 

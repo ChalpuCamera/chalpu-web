@@ -10,6 +10,7 @@ import { useStore, useUpdateStore } from "@/hooks/useStore";
 import { UpdateStoreRequest } from "@/lib/api/types";
 import { openAddressSearch } from "@/utils/addressSearch";
 import NavBar from "@/components/ui/navbar";
+import { useAlertDialog } from "@/components/ui/alert-dialog";
 
 const EditStorePage: React.FC = () => {
   const router = useRouter();
@@ -18,6 +19,7 @@ const EditStorePage: React.FC = () => {
 
   const { data: store, isLoading: storeLoading } = useStore(storeId);
   const updateStoreMutation = useUpdateStore();
+  const { showAlert, AlertDialogComponent } = useAlertDialog();
 
   const [formData, setFormData] = useState<UpdateStoreRequest>({
     storeName: "",
@@ -63,10 +65,16 @@ const EditStorePage: React.FC = () => {
 
   const handleCancel = () => {
     if (hasChanges) {
-      const confirmCancel = window.confirm(
-        "저장하지 않은 변경사항이 있습니다. 정말 취소하시겠습니까?"
-      );
-      if (!confirmCancel) return;
+      showAlert({
+        title: "변경사항 확인",
+        message: "저장하지 않은 변경사항이 있습니다. 정말 취소하시겠습니까?",
+        type: "warning",
+        confirmText: "취소",
+        cancelText: "계속 작성",
+        onConfirm: () => router.push("/mypage"),
+        onCancel: () => {}
+      });
+      return;
     }
     router.push("/mypage");
   };
@@ -103,12 +111,20 @@ const EditStorePage: React.FC = () => {
         },
         (error: Error) => {
           console.error("주소 검색 오류:", error);
-          alert("주소 검색 중 오류가 발생했습니다. 다시 시도해주세요.");
+          showAlert({
+            title: "주소 검색 오류",
+            message: "주소 검색 중 오류가 발생했습니다. 다시 시도해주세요.",
+            type: "error"
+          });
         }
       );
     } catch (error) {
       console.error("주소 검색 실행 오류:", error);
-      alert("주소 검색을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
+      showAlert({
+        title: "주소 검색 오류",
+        message: "주소 검색을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        type: "error"
+      });
     }
   };
 
@@ -117,27 +133,47 @@ const EditStorePage: React.FC = () => {
 
     // 유효성 검사
     if (!formData.storeName?.trim()) {
-      alert("매장명을 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "매장명을 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
     if (!formData.address?.trim()) {
-      alert("매장 주소를 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "매장 주소를 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
     if (!formData.phone?.trim()) {
-      alert("전화번호를 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "전화번호를 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
     if (!formData.businessRegistrationNumber?.trim()) {
-      alert("사업자 번호를 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "사업자 번호를 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
     if (!formData.businessType?.trim()) {
-      alert("업종을 입력해주세요.");
+      showAlert({
+        title: "입력 오류",
+        message: "업종을 입력해주세요.",
+        type: "warning"
+      });
       return;
     }
 
@@ -153,33 +189,63 @@ const EditStorePage: React.FC = () => {
       };
 
       await updateStoreMutation.mutateAsync({ id: storeId, data: submitData });
-      alert("매장 정보가 성공적으로 수정되었습니다.");
-      setHasChanges(false);
-      router.push("/mypage");
+      showAlert({
+        title: "수정 완료",
+        message: "매장 정보가 성공적으로 수정되었습니다.",
+        type: "success",
+        onConfirm: () => {
+          setHasChanges(false);
+          router.push("/mypage");
+        }
+      });
     } catch (error) {
       console.error("매장 수정 실패:", error);
 
       // 에러 메시지에 따라 다른 알림 표시
       if (error instanceof Error) {
         if (error.message.includes("401") || error.message.includes("인증")) {
-          alert("인증이 만료되었습니다. 다시 로그인해주세요.");
+          showAlert({
+            title: "인증 오류",
+            message: "인증이 만료되었습니다. 다시 로그인해주세요.",
+            type: "error"
+          });
         } else if (
           error.message.includes("403") ||
           error.message.includes("권한")
         ) {
-          alert("매장을 수정할 권한이 없습니다.");
+          showAlert({
+            title: "권한 오류",
+            message: "매장을 수정할 권한이 없습니다.",
+            type: "error"
+          });
         } else if (error.message.includes("404")) {
-          alert("매장을 찾을 수 없습니다.");
+          showAlert({
+            title: "매장 없음",
+            message: "매장을 찾을 수 없습니다.",
+            type: "error"
+          });
         } else if (
           error.message.includes("400") ||
           error.message.includes("잘못된")
         ) {
-          alert("입력 정보를 확인해주세요.");
+          showAlert({
+            title: "입력 오류",
+            message: "입력 정보를 확인해주세요.",
+            type: "error"
+          });
         } else {
-          alert(`매장 수정에 실패했습니다: ${error.message}`);
+          showAlert({
+            title: "수정 실패",
+            message: `매장 수정에 실패했습니다: ${error.message}`,
+            type: "error"
+          });
         }
       } else {
-        alert("매장 수정에 실패했습니다. 다시 시도해주세요.");
+        showAlert({
+          title: "수정 실패",
+          message: "매장 수정에 실패했습니다. 다시 시도해주세요.",
+          type: "error"
+        });
       }
     }
   };
@@ -359,6 +425,7 @@ const EditStorePage: React.FC = () => {
           </div>
         </form>
       </div>
+      {AlertDialogComponent}
     </div>
   );
 };

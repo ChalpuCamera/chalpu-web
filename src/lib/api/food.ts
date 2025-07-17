@@ -17,22 +17,17 @@ export const foodApi = {
   ): Promise<PagedResult<Food>> => {
     const searchParams = new URLSearchParams();
 
-    if (params?.page !== undefined) {
-      searchParams.append("page", params.page.toString());
-    }
-    if (params?.size !== undefined) {
-      searchParams.append("size", params.size.toString());
-    }
-    if (params?.sort) {
-      params.sort.forEach((sortParam) => {
-        searchParams.append("sort", sortParam);
-      });
-    }
+    // API 명세에 맞게 pageable 객체로 전달
+    const pageable = {
+      page: params?.page || 0,
+      size: params?.size || 20,
+      sort: params?.sort || [],
+    };
+
+    searchParams.append("pageable", JSON.stringify(pageable));
 
     const queryString = searchParams.toString();
-    const endpoint = queryString
-      ? `/api/foods/store/${storeId}?${queryString}`
-      : `/api/foods/store/${storeId}`;
+    const endpoint = `/api/foods/store/${storeId}?${queryString}`;
 
     return apiRequest<PagedResult<Food>>(endpoint).then(
       (response) => response.result
