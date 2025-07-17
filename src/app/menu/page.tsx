@@ -194,12 +194,6 @@ const MenuPage: React.FC = () => {
     return price.toLocaleString() + "원";
   };
 
-  // 음식 이미지 URL 가져오기
-  const getFoodImageUrl = (food: Food) => {
-    // thumbnailUrl이 있으면 사용, 없으면 null 반환
-    return food.thumbnailUrl || null;
-  };
-
   // 매장이 없는 경우 안내 화면 표시
   if (storesData && !hasStores) {
     return (
@@ -350,9 +344,9 @@ const MenuPage: React.FC = () => {
                 icon={faGripVertical}
                 className="text-gray-400"
               />
-              {getFoodImageUrl(food) ? (
+              {food.thumbnailUrl ? (
                 <Image
-                  src={getFoodImageUrl(food)!}
+                  src={food.thumbnailUrl}
                   alt={food.foodName}
                   width={80}
                   height={80}

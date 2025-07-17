@@ -120,6 +120,7 @@ export interface Food {
   cookingMethod: string;
   price: number;
   isActive: boolean;
+  thumbnailUrl?: string;
   photos?: Photo[];
   createdAt: string;
   updatedAt: string;
