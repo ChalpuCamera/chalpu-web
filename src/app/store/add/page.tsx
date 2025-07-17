@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { useCreateStore } from "@/hooks/useStore";
 import { CreateStoreRequest } from "@/lib/api/types";
 import { openAddressSearch } from "@/utils/addressSearch";
+import NavBar from "@/components/ui/navbar";
 
 const AddStorePage: React.FC = () => {
   const router = useRouter();
@@ -28,10 +27,6 @@ const AddStorePage: React.FC = () => {
   const [isWeekend, setIsWeekend] = useState(false);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("22:00");
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleCancel = () => {
     router.push("/mypage");
@@ -137,20 +132,7 @@ const AddStorePage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      {/* Nav Bar */}
-      <div className="w-full bg-white border-b mb-6">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <button onClick={handleBack} className="cursor-pointer">
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-xl text-gray-600"
-            />
-          </button>
-          <h1 className="text-lg font-medium">매장 등록</h1>
-          <div className="w-8"></div>
-        </div>
-      </div>
-
+      <NavBar title="매장 등록" />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">
