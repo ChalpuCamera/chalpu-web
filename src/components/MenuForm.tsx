@@ -5,17 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateFoodRequest, UpdateFoodRequest, Food } from "@/lib/api/types";
+import { CreateFoodRequest, UpdateFoodRequest, Food, Photo } from "@/lib/api/types";
 import PhotoUpload from "@/components/PhotoUpload";
 import PhotoGallery from "@/components/PhotoGallery";
-import { usePhotosByFood } from "@/hooks/usePhoto";
+// import { usePhotosByFood } from "@/hooks/usePhoto"; // 임시로 비활성화 - API 수정 후 재활성화"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface MenuFormProps {
   mode: "create" | "edit";
   storeId: number;
   foodId?: number; // edit 모드에서만 사용
   initialData?: Food; // edit 모드에서만 사용
-  onSubmit: (data: CreateFoodRequest | UpdateFoodRequest) => Promise<unknown>;
+  onSubmit: (data: CreateFoodRequest | UpdateFoodRequest) => void; // Promise 제거
   isPending: boolean;
   submitText: string;
   pendingText: string;
@@ -43,13 +51,19 @@ const MenuForm: React.FC<MenuFormProps> = ({
     isActive: true,
   });
 
-  // edit 모드에서만 사진 목록 조회
-  const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
-    foodId || 0,
-    { page: 0, size: 50 }
-  );
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
 
-  const photos = photosData?.content || [];
+  // edit 모드에서만 사진 목록 조회 (임시로 비활성화)
+  // const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
+  //   foodId || 0,
+  //   { page: 0, size: 50 }
+  // );
+
+  // const photos = photosData?.content || [];
+  const photos: Photo[] = [];
+  const refetchPhotos = () => {};
 
   // 초기 데이터 설정
   useEffect(() => {
@@ -87,6 +101,32 @@ const MenuForm: React.FC<MenuFormProps> = ({
     refetchPhotos();
   };
 
+  const handlePlatformPhotoSave = (platform: string) => {
+    setSelectedPlatform(platform);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSave = () => {
+    // 플랫폼별 사진 저장 로직
+    console.log(`${selectedPlatform} 사진 저장 시작`);
+    
+    // TODO: 실제 플랫폼별 사진 저장 API 호출 로직
+    // 예: 해당 플랫폼에 사진을 업로드하는 로직
+    
+    setShowConfirmDialog(false);
+    setShowSuccessDialog(true);
+  };
+
+  const handleCancelSave = () => {
+    setShowConfirmDialog(false);
+    setSelectedPlatform("");
+  };
+
+  const handleSuccessDialogClose = () => {
+    setShowSuccessDialog(false);
+    setSelectedPlatform("");
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     field: keyof (CreateFoodRequest | UpdateFoodRequest)
@@ -104,7 +144,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     // 유효성 검사
     if (!formData.foodName?.trim()) {
       alert("음식명을 입력해주세요.");
@@ -116,57 +156,8 @@ const MenuForm: React.FC<MenuFormProps> = ({
       return;
     }
 
-    try {
-      // 메뉴 정보 저장
-      const result = await onSubmit(formData);
-
-      // 성공 메시지
-      const successMessage =
-        mode === "create"
-          ? "메뉴가 성공적으로 등록되었습니다."
-          : "메뉴가 성공적으로 수정되었습니다.";
-      alert(successMessage);
-
-      // 캐시 무효화가 완료될 때까지 잠시 대기
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      return result;
-    } catch (error) {
-      console.error(`메뉴 ${mode === "create" ? "등록" : "수정"} 실패:`, error);
-
-      if (error instanceof Error) {
-        if (error.message.includes("401") || error.message.includes("인증")) {
-          alert("인증이 만료되었습니다. 다시 로그인해주세요.");
-        } else if (
-          error.message.includes("400") ||
-          error.message.includes("잘못된")
-        ) {
-          alert("입력 정보를 확인해주세요.");
-        } else if (
-          error.message.includes("404") ||
-          error.message.includes("찾을 수 없음")
-        ) {
-          alert(
-            mode === "create"
-              ? "매장을 찾을 수 없습니다."
-              : "메뉴를 찾을 수 없습니다."
-          );
-        } else {
-          alert(
-            `메뉴 ${mode === "create" ? "등록" : "수정"}에 실패했습니다: ${
-              error.message
-            }`
-          );
-        }
-      } else {
-        alert(
-          `메뉴 ${
-            mode === "create" ? "등록" : "수정"
-          }에 실패했습니다. 다시 시도해주세요.`
-        );
-      }
-      throw error;
-    }
+    // 상위 컴포넌트의 handleSubmit 호출 (Alert 다이얼로그 처리)
+    onSubmit(formData);
   };
 
   return (
@@ -196,6 +187,41 @@ const MenuForm: React.FC<MenuFormProps> = ({
         </div>
       )}
 
+      {/* Save Photo Platform */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">사진 저장하기</Label>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <button 
+            type="button"
+            onClick={() => handlePlatformPhotoSave("배달의 민족")}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            배달의 민족
+          </button>
+          <button 
+            type="button"
+            onClick={() => handlePlatformPhotoSave("쿠팡이츠")}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            쿠팡이츠
+          </button>
+          <button 
+            type="button"
+            onClick={() => handlePlatformPhotoSave("요기요")}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            요기요
+          </button>
+          <button 
+            type="button"
+            onClick={() => handlePlatformPhotoSave("네이버플레이스")}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            네이버플레이스
+          </button>
+        </div>
+      </div>
+
       {/* Food Name */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">
@@ -222,28 +248,6 @@ const MenuForm: React.FC<MenuFormProps> = ({
         />
       </div>
 
-      {/* Ingredients */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">재료</Label>
-        <Textarea
-          placeholder="사용되는 재료들을 입력해주세요 (예: 김치, 돼지고기, 두부, 대파)"
-          value={formData.ingredients || ""}
-          onChange={(e) => handleInputChange(e, "ingredients")}
-          className="w-full border-gray-200 focus:border-blue-500 min-h-[80px]"
-        />
-      </div>
-
-      {/* Cooking Method */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">조리법</Label>
-        <Textarea
-          placeholder="조리 방법을 입력해주세요 (예: 김치를 볶아 우린 후 끓인다)"
-          value={formData.cookingMethod || ""}
-          onChange={(e) => handleInputChange(e, "cookingMethod")}
-          className="w-full border-gray-200 focus:border-blue-500 min-h-[80px]"
-        />
-      </div>
-
       {/* Price */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">가격</Label>
@@ -252,19 +256,6 @@ const MenuForm: React.FC<MenuFormProps> = ({
           placeholder="0"
           value={formData.price || 0}
           onChange={(e) => handleInputChange(e, "price")}
-          className="w-full border-gray-200 focus:border-blue-500"
-          min="0"
-        />
-      </div>
-
-      {/* Stock */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">재고</Label>
-        <Input
-          type="number"
-          placeholder="0"
-          value={formData.stock || 0}
-          onChange={(e) => handleInputChange(e, "stock")}
           className="w-full border-gray-200 focus:border-blue-500"
           min="0"
         />
@@ -288,6 +279,46 @@ const MenuForm: React.FC<MenuFormProps> = ({
           {isPending ? pendingText : submitText}
         </Button>
       </div>
+
+
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사진 저장 확인</DialogTitle>
+            <DialogDescription>
+              {selectedPlatform}에 사진을 저장하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelSave}>
+              취소
+            </Button>
+            <Button onClick={handleConfirmSave}>
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>저장 완료</DialogTitle>
+            <DialogDescription>
+              {selectedPlatform}에 사진이 저장되었습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleSuccessDialogClose}>
+              확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </form>
   );
 };
