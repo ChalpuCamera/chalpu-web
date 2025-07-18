@@ -66,8 +66,42 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     }
   };
 
-  const handleSelectFromGallery = () => {
-    fileInputRef.current?.click();
+  const handleSelectFromGallery = async () => {
+    if (isAvailable) {
+      try {
+        const result = await bridge.openGallery({
+          selectionLimit: 1,
+          mediaType: "PHOTO"
+        });
+
+        if (result.success && result.files && result.files.length > 0) {
+          console.log("갤러리에서 사진 선택 성공:", result.files[0].path);
+          // Base64 이미지 데이터를 File 객체로 변환
+          const fileData = result.files[0];
+          const byteString = atob(fileData.data.split(",")[1]);
+          const mimeString = fileData.data
+            .split(",")[0]
+            .split(":")[1]
+            .split(";")[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const file = new File([ab], "gallery-photo.jpg", { type: mimeString });
+          handleFileSelect(file);
+        } else {
+          console.error("갤러리에서 사진 선택 실패:", result.error);
+          onUploadError(result.error || "사진 선택에 실패했습니다.");
+        }
+      } catch (error) {
+        console.error("갤러리 호출 실패:", error);
+        onUploadError("갤러리를 사용할 수 없습니다.");
+      }
+    } else {
+      // 웹에서는 기존 파일 입력 사용
+      fileInputRef.current?.click();
+    }
   };
 
   const handleTakePhoto = async () => {
