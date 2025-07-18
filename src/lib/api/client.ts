@@ -24,6 +24,15 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
 
+    // 디버그 로깅
+    console.log('🔍 API Request:', {
+      baseURL: config.baseURL,
+      url: config.url,
+      fullURL: `${config.baseURL}${config.url}`,
+      method: config.method,
+      hasToken: !!tokens,
+    });
+
     return config;
   },
   (error) => {
