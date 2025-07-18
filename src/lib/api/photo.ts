@@ -65,17 +65,4 @@ export const photoApi = {
     );
   },
 
-  // 음식별 사진 목록 조회 (임시로 비활성화 - API 수정 후 재활성화)
-  getPhotosByFood: (): Promise<PagedResult<Photo>> => {
-    // 임시로 빈 결과 반환
-    return Promise.resolve({
-      content: [],
-      page: 0,
-      size: 0,
-      totalElements: 0,
-      totalPages: 0,
-      hasNext: false,
-      hasPrevious: false,
-    });
-  },
 };

@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { CreateFoodRequest, UpdateFoodRequest, Food, Photo } from "@/lib/api/types";
 import PhotoUpload from "@/components/PhotoUpload";
 import PhotoGallery from "@/components/PhotoGallery";
-// import { usePhotosByFood } from "@/hooks/usePhoto"; // 임시로 비활성화 - API 수정 후 재활성화"
 import {
   Dialog,
   DialogContent,
@@ -55,13 +54,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
 
-  // edit 모드에서만 사진 목록 조회 (임시로 비활성화)
-  // const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
-  //   foodId || 0,
-  //   { page: 0, size: 50 }
-  // );
-
-  // const photos = photosData?.content || [];
+  // 사진은 음식 데이터의 thumbnailUrl을 사용
   const photos: Photo[] = [];
   const refetchPhotos = () => {};
 
