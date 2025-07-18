@@ -5,18 +5,16 @@ declare global {
   interface Window {
     Android?: {
       postMessage: (message: string) => void;
+      receiveMessage: (message: string) => void;
     };
     webkit?: {
       messageHandlers?: {
-        iOS?: {
-          postMessage: (message: string) => void;
+        chalpu?: {
+          postMessage: (message: NativeBridgeMessage) => void;
         };
       };
     };
-    iOS?: {
-      postMessage: (message: string) => void;
-    };
-    receiveMessageFromApp?: (message: string) => void;
+    receiveNativeMessage?: (callbackId: string, result: unknown) => void;
     // 앱에서 주입하는 설정 객체
     appConfig?: {
       userId?: string;
@@ -65,12 +63,7 @@ export interface NativeFunctions {
 
 // 카메라 옵션 타입
 export interface CameraOptions {
-  quality?: number; // 0-100
-  allowEdit?: boolean;
-  encodingType?: "JPEG" | "PNG";
-  targetWidth?: number;
-  targetHeight?: number;
-  mediaType?: "PHOTO" | "VIDEO" | "ALLMEDIA";
+  foodName?: string;
 }
 
 // 카메라 결과 타입
@@ -158,10 +151,9 @@ class NativeBridge implements NativeFunctions {
         Android?: { postMessage?: (message: string) => void };
         webkit?: {
           messageHandlers?: {
-            iOS?: { postMessage?: (message: string) => void };
+            chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
           };
         };
-        iOS?: { postMessage?: (message: string) => void };
       };
 
       // Android WebView
@@ -169,12 +161,8 @@ class NativeBridge implements NativeFunctions {
         win.Android.postMessage(JSON.stringify(message));
       }
       // iOS WKWebView
-      else if (win.webkit?.messageHandlers?.iOS?.postMessage) {
-        win.webkit.messageHandlers.iOS.postMessage(JSON.stringify(message));
-      }
-      // iOS 직접 브릿지
-      else if (win.iOS?.postMessage) {
-        win.iOS.postMessage(JSON.stringify(message));
+      else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
+        win.webkit.messageHandlers.chalpu.postMessage(message);
       }
       // 웹뷰가 아닌 경우 또는 브릿지가 준비되지 않은 경우
       else {
@@ -336,8 +324,7 @@ export function useNativeApp() {
       // 1. 브릿지 객체 확인 (가장 확실한 방법)
       const hasBridge = !!(
         window.Android?.postMessage ||
-        window.webkit?.messageHandlers?.iOS?.postMessage ||
-        window.iOS?.postMessage
+        window.webkit?.messageHandlers?.chalpu?.postMessage
       );
 
       // 2. 커스텀 User-Agent 확인 (앱에서 설정한 경우)
