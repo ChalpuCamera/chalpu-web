@@ -74,10 +74,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     if (isAvailable) {
       try {
         const result = await bridge.openCamera({
-          quality: 80,
-          allowEdit: false,
-          encodingType: "JPEG",
-          mediaType: "PHOTO",
+          foodName: "uploaded_photo"
         });
 
         if (result.success && result.imageData) {

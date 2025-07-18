@@ -73,10 +73,7 @@ export default function Home() {
     if (isAvailable) {
       try {
         const result = await bridge.openCamera({
-          quality: 80,
-          allowEdit: true,
-          encodingType: "JPEG",
-          mediaType: "PHOTO",
+          foodName: "guide_photo"
         });
 
         if (result.success) {
