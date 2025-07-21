@@ -50,18 +50,28 @@ export function AlertDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           {title && <DialogTitle>{title}</DialogTitle>}
-          <DialogDescription>{message}</DialogDescription>
+          <DialogDescription className="whitespace-pre-line">
+            {message}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2">
           {onCancel && (
-            <Button variant="outline" onClick={handleCancel}>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              className="px-4 py-2"
+            >
               {cancelText}
             </Button>
           )}
-          <Button onClick={handleConfirm} variant={type === "error" ? "destructive" : "default"}>
+          <Button
+            onClick={handleConfirm}
+            variant={type === "error" ? "destructive" : "default"}
+            className="px-4 py-2"
+          >
             {confirmText}
           </Button>
         </DialogFooter>
@@ -85,21 +95,19 @@ export function useAlertDialog() {
     message: "",
   });
 
-  const showAlert = React.useCallback((options: Omit<AlertDialogProps, "isOpen" | "onClose">) => {
-    setDialog({ ...options, isOpen: true });
-  }, []);
+  const showAlert = React.useCallback(
+    (options: Omit<AlertDialogProps, "isOpen" | "onClose">) => {
+      setDialog({ ...options, isOpen: true });
+    },
+    []
+  );
 
   const hideAlert = React.useCallback(() => {
-    setDialog(prev => ({ ...prev, isOpen: false }));
+    setDialog((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
   const AlertDialogComponent = React.useMemo(
-    () => (
-      <AlertDialog
-        {...dialog}
-        onClose={hideAlert}
-      />
-    ),
+    () => <AlertDialog {...dialog} onClose={hideAlert} />,
     [dialog, hideAlert]
   );
 

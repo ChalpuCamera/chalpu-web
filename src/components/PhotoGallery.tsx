@@ -37,7 +37,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
   const handleDeletePhoto = async (photoId: number) => {
     const confirmDelete = window.confirm(
-      "이 사진을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다."
+      "이 사진을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다."
     );
 
     if (!confirmDelete) return;

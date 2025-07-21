@@ -119,34 +119,40 @@ const MyPage: React.FC = () => {
   const handleDeleteStore = async (storeId: number, storeName: string) => {
     showAlert({
       title: "매장 삭제 확인",
-      message: `"${storeName}" 매장을 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      message: `"${storeName}" 매장을 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
       type: "warning",
       confirmText: "삭제",
       cancelText: "취소",
       onConfirm: async () => {
         try {
           await deleteStoreMutation.mutateAsync(storeId);
-          
+
+          // 매장 목록 새로고침 (메뉴 페이지와 동일한 방식)
+          await refetch();
+
           // 삭제된 매장이 선택된 매장이었다면 첫 번째 매장으로 선택 변경
           if (selectedStoreIndex >= stores.length - 1) {
             setSelectedStoreIndex(0);
           }
-          
+
           showAlert({
             title: "삭제 완료",
             message: "매장이 성공적으로 삭제되었습니다.",
-            type: "success"
+            type: "success",
           });
         } catch (error) {
           console.error("매장 삭제 실패:", error);
 
           // 에러 메시지에 따라 다른 알림 표시
           if (error instanceof Error) {
-            if (error.message.includes("401") || error.message.includes("인증")) {
+            if (
+              error.message.includes("401") ||
+              error.message.includes("인증")
+            ) {
               showAlert({
                 title: "인증 오류",
                 message: "인증이 만료되었습니다. 다시 로그인해주세요.",
-                type: "error"
+                type: "error",
               });
             } else if (
               error.message.includes("403") ||
@@ -155,37 +161,37 @@ const MyPage: React.FC = () => {
               showAlert({
                 title: "권한 오류",
                 message: "매장을 삭제할 권한이 없습니다.",
-                type: "error"
+                type: "error",
               });
             } else if (error.message.includes("404")) {
               showAlert({
                 title: "매장 없음",
                 message: "매장을 찾을 수 없습니다.",
-                type: "error"
+                type: "error",
               });
             } else {
               showAlert({
                 title: "삭제 실패",
                 message: `매장 삭제에 실패했습니다: ${error.message}`,
-                type: "error"
+                type: "error",
               });
             }
           } else {
             showAlert({
               title: "삭제 실패",
               message: "매장 삭제에 실패했습니다. 다시 시도해주세요.",
-              type: "error"
+              type: "error",
             });
           }
         }
       },
-      onCancel: () => {}
+      onCancel: () => {},
     });
   };
 
   return (
     <div className="bg-white">
-      <NavBar title="마이페이지" />
+      <NavBar title="마이페이지" onBack={() => router.push("/")} />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         {/* Store Management Section */}
