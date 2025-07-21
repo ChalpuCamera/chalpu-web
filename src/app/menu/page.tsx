@@ -129,7 +129,7 @@ const MenuPage: React.FC = () => {
   const handleDeleteMenu = async (foodId: number, foodName: string) => {
     showAlert({
       title: "메뉴 삭제 확인",
-      message: `"${foodName}" 메뉴를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      message: `"${foodName}" 메뉴를 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
       type: "warning",
       confirmText: "삭제",
       cancelText: "취소",

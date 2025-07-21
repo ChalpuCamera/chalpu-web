@@ -133,7 +133,7 @@ const StoreEditDialog: React.FC<StoreEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>{fieldLabel} 수정</DialogTitle>
         </DialogHeader>
@@ -156,7 +156,7 @@ const StoreEditDialog: React.FC<StoreEditDialogProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-lg whitespace-nowrap px-4"
+                  className="rounded-lg whitespace-nowrap px-3 py-2 text-sm"
                   onClick={handleAddressSearch}
                 >
                   주소 검색
@@ -191,18 +191,18 @@ const StoreEditDialog: React.FC<StoreEditDialogProps> = ({
             type="button"
             variant="outline"
             onClick={handleCancel}
-            className="flex-1"
+            className="flex-1 px-3 py-2"
           >
-            <FontAwesomeIcon icon={faTimes} className="mr-2" />
+            <FontAwesomeIcon icon={faTimes} className="mr-1 text-sm" />
             취소
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={updateStoreMutation.isPending || !value.trim()}
-            className="flex-1"
+            className="flex-1 px-3 py-2"
           >
-            <FontAwesomeIcon icon={faSave} className="mr-2" />
+            <FontAwesomeIcon icon={faSave} className="mr-1 text-sm" />
             {updateStoreMutation.isPending ? "수정 중..." : "수정"}
           </Button>
         </DialogFooter>
