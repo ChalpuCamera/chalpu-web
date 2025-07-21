@@ -29,7 +29,8 @@ const NavBar: React.FC<NavBarProps> = ({
   };
 
   return (
-    <div className={`w-full bg-white border-b pb-2 mb-4 ${className}`}>
+    <>
+    <div className={`fixed left-0 w-full bg-white border-b pl-5 px-2 pb-2 mb-4 ${className}`}>
       <div className="px-4 flex items-center justify-between">
         {showBackButton ? (
           <button onClick={handleBack} className="cursor-pointer">
@@ -45,6 +46,8 @@ const NavBar: React.FC<NavBarProps> = ({
         {rightElement || <div className="w-8"></div>}
       </div>
     </div>
+    <div className="h-16"></div>
+    </>
   );
 };
 
