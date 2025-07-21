@@ -8,7 +8,7 @@
   --top-safe-area: env(safe-area-inset-top);
 
   /* 색상 테마 */
-  --primary: oklch(0.205 0 0);
+  --primary: #3B82F6;
   --primary-light: #333333;
   --secondary: oklch(0.97 0 0);
   --accent: oklch(0.97 0 0);
