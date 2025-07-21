@@ -10,6 +10,9 @@ module.exports = {
       borderRadius: {
         button: "0.625rem",
       },
+      colors: {
+        chalpu: "#3B82F6",
+      },
     },
   },
   plugins: [],
