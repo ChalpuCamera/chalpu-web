@@ -28,6 +28,8 @@ import {
   faLightbulb,
 } from "@fortawesome/free-solid-svg-icons";
 import { useRouter } from "next/navigation";
+import { useTodayTip, getTipImageUrl } from "@/hooks/useTips";
+import Image from "next/image";
 
 export default function Home() {
   const { bridge, isAvailable } = useNativeBridge();
@@ -35,7 +37,9 @@ export default function Home() {
   const createActivity = useCreateActivity();
   const { getCacheInfo, forceRefresh } = useActivityCache();
   const router = useRouter();
-
+  
+  // 오늘의 팁 데이터 가져오기
+  const { data: todayTip, isLoading: tipLoading, error: tipError } = useTodayTip();
   // zustand 스토어 직접 사용
   const {
     tokens,
@@ -334,11 +338,29 @@ export default function Home() {
         <div className="mb-12">
           <Card className="p-4 bg-orange-50">
             <div className="flex gap-4">
-              <div className="w-[80px] h-[80px] bg-orange-200 rounded-lg flex items-center justify-center">
-                <FontAwesomeIcon
-                  icon={faLightbulb}
-                  className="text-2xl text-orange-600"
-                />
+              <div className="w-[80px] h-[80px] bg-orange-200 rounded-lg flex items-center justify-center overflow-hidden">
+                {tipLoading ? (
+                  <div className="w-full h-full bg-orange-300 animate-pulse"></div>
+                ) : todayTip && !tipError ? (
+                  <Image
+                    src={getTipImageUrl(todayTip.id)}
+                    alt={todayTip.title}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // 이미지 로드 실패 시 기본 아이콘으로 대체
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement!.innerHTML = `<FontAwesome icon={faLightbulb} className="text-2xl text-orange-600" />`;
+                    }}
+                  />
+                ) : (
+                  <FontAwesomeIcon
+                    icon={faLightbulb}
+                    className="text-2xl text-orange-600"
+                  />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -348,11 +370,26 @@ export default function Home() {
                   />
                   <h3 className="font-medium">오늘의 팁</h3>
                 </div>
-                <h4 className="font-medium mb-1">자연광 활용하기</h4>
-                <p className="text-sm text-gray-600">
-                  창가 근처에서 촬영하면 음식이 더욱 맛있어 보여요. 플래시보다는
-                  자연스러운 빛을 활용해 보세요!
-                </p>
+                {tipLoading ? (
+                  <div className="space-y-2">
+                    <div className="h-4 bg-orange-300 rounded w-32 animate-pulse"></div>
+                    <div className="h-3 bg-orange-200 rounded w-full animate-pulse"></div>
+                    <div className="h-3 bg-orange-200 rounded w-4/5 animate-pulse"></div>
+                  </div>
+                ) : todayTip && !tipError ? (
+                  <>
+                    <h4 className="font-medium mb-1">{todayTip.title}</h4>
+                    <p className="text-sm text-gray-600">{todayTip.text}</p>
+                  </>
+                ) : (
+                  <>
+                    <h4 className="font-medium mb-1">자연광 활용하기</h4>
+                    <p className="text-sm text-gray-600">
+                      창가 근처에서 촬영하면 음식이 더욱 맛있어 보여요. 플래시보다는
+                      자연스러운 빛을 활용해 보세요!
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </Card>
