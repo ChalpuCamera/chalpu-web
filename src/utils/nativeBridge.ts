@@ -308,6 +308,32 @@ class NativeBridge implements NativeFunctions {
   minimizeApp(): void {
     this.sendToNative("minimizeApp").catch(console.error);
   }
+
+  // 일반적인 메시지 전송 (postMessage)
+  postMessage(type: string, data?: unknown): void {
+    const win = window as Window & {
+      Android?: { postMessage?: (message: string) => void };
+      webkit?: {
+        messageHandlers?: {
+          chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
+        };
+      };
+    };
+
+    const message = {
+      type,
+      data,
+    };
+
+    // Android WebView
+    if (win.Android?.postMessage) {
+      win.Android.postMessage(JSON.stringify(message));
+    }
+    // iOS WKWebView
+    else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
+      win.webkit.messageHandlers.chalpu.postMessage(message);
+    }
+  }
 }
 
 // 싱글톤 인스턴스 생성

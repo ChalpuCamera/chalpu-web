@@ -81,7 +81,6 @@ const MyPage: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push("/");
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }
