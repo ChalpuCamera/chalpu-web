@@ -73,10 +73,7 @@ export default function Home() {
     setIsStoreDropdownOpen(false);
   };
 
-
   const handlePhotoGuide = async () => {
-    console.log("카메라 버튼 클릭됨");
-    
     // 로그인 성공 메시지를 네이티브 앱에 전달
     if (isAvailable && userInfo) {
       bridge.postMessage("LOGIN_SUCCESS", {
@@ -85,13 +82,10 @@ export default function Home() {
         userEmail: userInfo.email,
       });
     }
-    
     if (isAvailable) {
       try {
         console.log("카메라 촬영 시도");
-        const result = await bridge.openCamera({
-          foodName: "guide_photo",
-        });
+        const result = await bridge.openCameraWithCallback("guide_photo");
 
         if (result.success) {
           console.log("카메라 촬영 성공:", result.filePath);
@@ -129,6 +123,182 @@ export default function Home() {
   const handleMyPage = () => {
     console.log("마이페이지로 이동 - 추후 구현");
     router.push("/mypage");
+  };
+
+  // Alert 기능 테스트 핸들러
+  const handleTestAlert = () => {
+    if (isAvailable) {
+      bridge.showAlert("이것은 네이티브 Alert 테스트입니다!", "알림");
+    } else {
+      alert("웹 브라우저에서는 일반 alert이 표시됩니다.");
+    }
+  };
+
+  // 네이티브 브릿지 상태 확인
+  const handleTestBridge = () => {
+    console.log("=== 네이티브 브릿지 테스트 ===");
+    console.log("isAvailable:", isAvailable);
+    console.log("window.Android:", !!window.Android);
+    console.log("window.webkit:", !!window.webkit);
+    console.log("User Agent:", navigator.userAgent);
+
+    if (window.Android) {
+      console.log(
+        "Android.postMessage:",
+        typeof (window.Android as Record<string, unknown>).postMessage
+      );
+    }
+    if (window.webkit?.messageHandlers?.chalpu) {
+      console.log(
+        "iOS chalpu handler:",
+        typeof window.webkit.messageHandlers.chalpu.postMessage
+      );
+    }
+
+    // 단순한 테스트 메시지 전송
+    bridge.postMessage("TEST_MESSAGE", {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+    });
+  };
+
+  // 앱에서 웹으로 응답 테스트
+  const handleTestResponse = () => {
+    console.log("앱 응답 테스트 - receiveNativeMessage 함수 확인");
+
+    // receiveNativeMessage 함수가 있는지 확인
+    if (typeof window.receiveNativeMessage === "function") {
+      console.log("✅ receiveNativeMessage 함수 존재");
+
+      // 직접 호출해서 테스트
+      window.receiveNativeMessage("test_callback", {
+        success: true,
+        message: "테스트 응답",
+      });
+    } else {
+      console.log("❌ receiveNativeMessage 함수가 없습니다");
+    }
+
+    // Android 객체 상세 확인
+    if (window.Android) {
+      console.log(
+        "Android 객체 메서드들:",
+        Object.getOwnPropertyNames(window.Android)
+      );
+    }
+  };
+
+  // Android 객체 상세 진단
+  const handleDiagnose = () => {
+    console.log("=== 🔍 Android 웹뷰 진단 ===");
+    console.log("window.NativeBridge 존재:", !!window.NativeBridge);
+    console.log("window.Android 존재:", !!window.Android);
+
+    if (window.NativeBridge) {
+      console.log("✅ NativeBridge 발견!");
+      console.log(
+        "postMessage 메서드:",
+        typeof window.NativeBridge.postMessage
+      );
+    }
+
+    if (window.Android) {
+      console.log("✅ Android 발견!");
+      console.log("메서드들:", Object.getOwnPropertyNames(window.Android));
+    }
+
+    console.log("User Agent:", navigator.userAgent);
+  };
+
+  // 기존 showToast 메서드로 테스트
+  const handleTestToast = () => {
+    console.log("기존 showToast 메서드로 테스트");
+
+    if (window.Android) {
+      const androidObj = window.Android as Record<string, unknown>;
+      if (typeof androidObj.showToast === "function") {
+        try {
+          (androidObj.showToast as (message: string) => void)(
+            "웹에서 호출한 토스트 메시지!"
+          );
+          console.log("✅ showToast 호출 성공!");
+        } catch (error) {
+          console.log("❌ showToast 호출 실패:", error);
+        }
+      } else {
+        console.log("❌ showToast 메서드를 찾을 수 없음");
+      }
+    }
+  };
+
+  // 기존 메서드들로 통신 테스트
+  const handleTestExistingMethods = () => {
+    console.log("=== 기존 Android 메서드들 테스트 ===");
+
+    if (!window.Android) {
+      console.log("❌ Android 객체가 없습니다");
+      return;
+    }
+
+    const android = window.Android as Record<string, unknown>;
+
+    // showToast 테스트
+    if (typeof android.showToast === "function") {
+      try {
+        (android.showToast as (message: string) => void)(
+          "웹에서 보낸 토스트 메시지입니다!"
+        );
+        console.log("✅ showToast 성공");
+      } catch (error) {
+        console.log("❌ showToast 실패:", error);
+      }
+    }
+
+    // getDeviceInfo 테스트
+    if (typeof android.getDeviceInfo === "function") {
+      try {
+        const deviceInfo = (android.getDeviceInfo as () => unknown)();
+        console.log("✅ getDeviceInfo 성공:", deviceInfo);
+      } catch (error) {
+        console.log("❌ getDeviceInfo 실패:", error);
+      }
+    }
+
+    // getAuthTokens 테스트
+    if (typeof android.getAuthTokens === "function") {
+      try {
+        const tokens = (android.getAuthTokens as () => unknown)();
+        console.log("✅ getAuthTokens 성공:", tokens);
+      } catch (error) {
+        console.log("❌ getAuthTokens 실패:", error);
+      }
+    }
+  };
+
+  // 카메라 테스트 (응답 없는 버전)
+  const handleTestCameraSimple = () => {
+    console.log("단순 카메라 테스트 (응답 없음)");
+    bridge.openCamera("test_food");
+  };
+
+  // 갤러리 테스트
+  const handleTestGallery = async () => {
+    console.log("갤러리 테스트 시작");
+    if (isAvailable) {
+      try {
+        const result = await bridge.openGalleryWithCallback();
+        console.log("갤러리 결과:", result);
+        if (result.success) {
+          bridge.showAlert(
+            `갤러리에서 파일을 선택했습니다: ${result.path}`,
+            "성공"
+          );
+        }
+      } catch (error) {
+        console.error("갤러리 테스트 실패:", error);
+        bridge.showAlert("갤러리 테스트 실패", "오류");
+      }
+    }
   };
 
   // 개발 환경에서 캐시 정보 표시
@@ -192,12 +362,79 @@ export default function Home() {
               </span>
             </div>
             <div className="flex justify-between items-center">
+              <span>네이티브 기능 테스트:</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={handleTestBridge}
+                  className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  브릿지
+                </button>
+                <button
+                  onClick={handleTestAlert}
+                  className="bg-purple-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  Alert
+                </button>
+                <button
+                  onClick={handleTestCameraSimple}
+                  className="bg-green-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  카메라
+                </button>
+                <button
+                  onClick={handleTestGallery}
+                  className="bg-orange-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  갤러리
+                </button>
+                <button
+                  onClick={handleTestResponse}
+                  className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  응답
+                </button>
+                <button
+                  onClick={handleDiagnose}
+                  className="bg-yellow-500 text-white px-2 py-1 rounded text-sm"
+                >
+                  진단
+                </button>
+                <button
+                  onClick={handleTestToast}
+                  className="bg-purple-700 text-white px-2 py-1 rounded text-sm"
+                >
+                  showToast
+                </button>
+                <button
+                  onClick={handleTestExistingMethods}
+                  className="bg-blue-700 text-white px-2 py-1 rounded text-sm"
+                >
+                  기존 메서드 테스트
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
               <span>
                 매장: {storesLoading ? "로딩..." : `${stores.length}개`} | 선택:{" "}
                 {hasStores
                   ? stores[selectedStore]?.storeName || "없음"
                   : "없음"}{" "}
                 | 총: {storesData?.totalElements || 0}개
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>
+                브릿지 상태: {isAvailable ? "✅ 연결됨" : "❌ 미연결"} |
+                NativeBridge:{" "}
+                {typeof window !== "undefined" && window.NativeBridge
+                  ? "✅"
+                  : "❌"}{" "}
+                | iOS:{" "}
+                {typeof window !== "undefined" &&
+                window.webkit?.messageHandlers?.chalpu
+                  ? "✅"
+                  : "❌"}
               </span>
             </div>
           </div>

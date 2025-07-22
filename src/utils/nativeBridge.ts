@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 declare global {
   interface Window {
     Android?: {
-      postMessage: (message: string) => void;
-      receiveMessage: (message: string) => void;
+      showToast: (message: string) => void;
+      getAccessToken: () => string;
+      // 기존 Android Interface의 다른 메서드들...
+    };
+    NativeBridge?: {
+      postMessage: (message: string) => string;
     };
     webkit?: {
       messageHandlers?: {
@@ -27,94 +31,31 @@ declare global {
 
 // 네이티브 브릿지 메시지 타입 정의
 export interface NativeBridgeMessage {
-  type: string;
-  data?: unknown;
-  callback?: string;
-}
-
-// 네이티브에서 호출할 수 있는 기능들
-export interface NativeFunctions {
-  // 카메라 관련
-  openCamera: (options?: CameraOptions) => Promise<CameraResult>;
-  openGallery: (options?: GalleryOptions) => Promise<GalleryResult>;
-
-  // 인증 관련
-  getAuthTokens: () => Promise<AuthTokens>;
-  refreshAuthToken: (refreshToken: string) => Promise<AuthTokens>;
-  logout: () => Promise<void>;
-  showLogin: () => Promise<void>;
-
-  // 디바이스 정보
-  getDeviceInfo: () => Promise<DeviceInfo>;
-
-  // 파일 시스템
-  saveFile: (data: string, filename: string) => Promise<boolean>;
-
-  // 네트워크
-  getNetworkStatus: () => Promise<NetworkStatus>;
-
-  // 알림
-  showNativeAlert: (message: string, title?: string) => Promise<void>;
-
-  // 앱 관련
-  closeApp: () => void;
-  minimizeApp: () => void;
-}
-
-// 카메라 옵션 타입
-export interface CameraOptions {
-  foodName?: string;
+  type: string; // 호출할 함수명
+  data?: unknown; // 전달할 데이터 (optional)
+  callback?: string; // 콜백 ID (응답 받을 때 사용, optional)
 }
 
 // 카메라 결과 타입
 export interface CameraResult {
   success: boolean;
-  imageData?: string; // base64 encoded image
-  filePath?: string;
-  error?: string;
-}
-
-// 갤러리 옵션 타입
-export interface GalleryOptions {
-  selectionLimit?: number;
-  mediaType?: "PHOTO" | "VIDEO" | "ALLMEDIA";
+  filePath?: string; // 파일 경로 (성공 시)
+  error?: string; // 에러 메시지 (실패 시)
 }
 
 // 갤러리 결과 타입
 export interface GalleryResult {
   success: boolean;
-  files?: Array<{
-    data: string;
-    path: string;
-    type: string;
-  }>;
-  error?: string;
+  path?: string; // 파일 경로
+  error?: string; // 에러 메시지 (실패 시)
 }
 
-// 디바이스 정보 타입
-export interface DeviceInfo {
-  platform: "ios" | "android";
-  version: string;
-  model: string;
-  uuid: string;
-  manufacturer: string;
+// 로그아웃/로그인 결과 타입
+export interface AuthResult {
+  success: boolean;
 }
 
-// 네트워크 상태 타입
-export interface NetworkStatus {
-  isConnected: boolean;
-  connectionType: "wifi" | "cellular" | "none" | "unknown";
-}
-
-// 인증 토큰 타입
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number; // seconds
-  tokenType?: string;
-}
-
-class NativeBridge implements NativeFunctions {
+class NativeBridge {
   private callbackCounter = 0;
   private pendingCallbacks: Map<string, (result: unknown) => void> = new Map();
 
@@ -129,8 +70,30 @@ class NativeBridge implements NativeFunctions {
     }
   }
 
-  // 네이티브로 메시지 전송
-  private sendToNative(type: string, data?: unknown): Promise<unknown> {
+  /**
+   * 네이티브 앱으로 메시지 전송 (응답 없음)
+   * @param type 명령어 (브릿지 함수 이름)
+   * @param data 전달할 데이터 (optional)
+   */
+  postMessage(type: string, data?: unknown): void {
+    const message: NativeBridgeMessage = {
+      type,
+      ...(data !== undefined && { data }),
+    };
+
+    this.sendMessage(message);
+  }
+
+  /**
+   * 네이티브 앱으로 메시지 전송 (응답 있음)
+   * @param type 명령어 (브릿지 함수 이름)
+   * @param data 전달할 데이터 (optional)
+   * @returns Promise<unknown>
+   */
+  async postMessageWithCallback(
+    type: string,
+    data?: unknown
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (typeof window === "undefined") {
         reject(new Error("Window is not available"));
@@ -140,41 +103,13 @@ class NativeBridge implements NativeFunctions {
       const callbackId = `callback_${++this.callbackCounter}`;
       this.pendingCallbacks.set(callbackId, resolve);
 
-
       const message: NativeBridgeMessage = {
         type,
-        data,
+        ...(data !== undefined && { data }),
         callback: callbackId,
       };
 
-      const win = window as Window & {
-        Android?: { postMessage?: (message: string) => void };
-        webkit?: {
-          messageHandlers?: {
-            chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
-          };
-        };
-      };
-
-      // Android WebView
-      if (win.Android?.postMessage) {
-        win.Android.postMessage(JSON.stringify(message));
-      }
-      // iOS WKWebView
-      else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
-        win.webkit.messageHandlers.chalpu.postMessage(message);
-      }
-      // 웹뷰가 아닌 경우 또는 브릿지가 준비되지 않은 경우
-      else {
-        // 개발 환경에서는 mock 데이터 반환
-        if (process.env.NODE_ENV === "development") {
-          setTimeout(() => {
-            this.receiveNativeMessage(callbackId, this.getMockResponse(type));
-          }, 100);
-        } else {
-          reject(new Error("Native bridge is not available"));
-        }
-      }
+      this.sendMessage(message);
 
       // 타임아웃 설정 (10초)
       setTimeout(() => {
@@ -186,12 +121,72 @@ class NativeBridge implements NativeFunctions {
     });
   }
 
+  // 실제 메시지 전송 로직
+  private sendMessage(message: NativeBridgeMessage): void {
+    const win = window as Window & {
+      NativeBridge?: { postMessage?: (message: string) => string };
+      webkit?: {
+        messageHandlers?: {
+          chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
+        };
+      };
+    };
+
+    // console.log("🔗 네이티브 브릿지 메시지 전송:", message);
+
+    // Android WebView (NativeBridge Interface)
+    if (win.NativeBridge?.postMessage) {
+      // console.log("📱 NativeBridge로 메시지 전송");
+      try {
+        const response = win.NativeBridge.postMessage(JSON.stringify(message));
+        // console.log("📱 NativeBridge 응답:", response);
+
+        // 콜백이 있는 경우 즉시 응답 처리
+        if (message.callback && response) {
+          try {
+            const parsedResponse = JSON.parse(response);
+            this.receiveNativeMessage(message.callback, parsedResponse);
+          } catch (e) {
+            console.error("응답 파싱 실패:", e);
+          }
+        }
+      } catch (error) {
+        console.error("NativeBridge 호출 실패:", error);
+      }
+    }
+    // iOS WKWebView
+    else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
+      // console.log("🍎 iOS로 메시지 전송");
+      win.webkit.messageHandlers.chalpu.postMessage(message);
+    }
+    // 개발 환경에서는 콘솔에 로그만 출력
+    else {
+      // console.log("🌐 브라우저 환경 (네이티브 브릿지 없음)");
+      // console.log("Native Bridge (Dev Mode):", message);
+
+      // 콜백이 있는 경우 mock 데이터 반환
+      if (message.callback && process.env.NODE_ENV === "development") {
+        // console.log("⏱️ Mock 응답 예정:", this.getMockResponse(message.type));
+        setTimeout(() => {
+          this.receiveNativeMessage(
+            message.callback!,
+            this.getMockResponse(message.type)
+          );
+        }, 100);
+      }
+    }
+  }
+
   // 네이티브에서 웹으로 메시지 수신
   private receiveNativeMessage(callbackId: string, result: unknown) {
+    // console.log("📨 네이티브에서 응답 수신:", { callbackId, result });
     const callback = this.pendingCallbacks.get(callbackId);
     if (callback) {
+      // console.log("✅ 콜백 실행:", callbackId);
       this.pendingCallbacks.delete(callbackId);
       callback(result);
+    } else {
+      // console.log("⚠️ 콜백을 찾을 수 없음:", callbackId);
     }
   }
 
@@ -201,138 +196,109 @@ class NativeBridge implements NativeFunctions {
       case "openCamera":
         return {
           success: true,
-          imageData: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...",
           filePath: "/mock/path/image.jpg",
         };
-      case "getDeviceInfo":
+      case "openGallery":
         return {
-          platform: "android",
-          version: "11.0",
-          model: "Mock Device",
-          uuid: "mock-uuid-1234",
-          manufacturer: "Mock Manufacturer",
-        };
-      case "getNetworkStatus":
-        return {
-          isConnected: true,
-          connectionType: "wifi",
-        };
-      case "getAuthTokens":
-        return {
-          accessToken: "mock-access-token",
-          refreshToken: "mock-refresh-token",
-          expiresIn: 3600,
-          tokenType: "Bearer",
-        };
-      case "refreshAuthToken":
-        return {
-          accessToken: "mock-new-access-token",
-          refreshToken: "mock-new-refresh-token",
-          expiresIn: 3600,
-          tokenType: "Bearer",
+          success: true,
+          path: "/mock/path/gallery_image.jpg",
         };
       case "logout":
-        return { success: true };
       case "showLogin":
-        return { success: true };
+      case "showAlert":
+        return {
+          success: true,
+        };
       default:
         return { success: true };
     }
   }
 
-  // 인증 토큰 가져오기
-  async getAuthTokens(): Promise<AuthTokens> {
-    return this.sendToNative("getAuthTokens") as Promise<AuthTokens>;
+  /**
+   * 로그아웃 - 로그인 페이지로 이동
+   */
+  logout(): void {
+    this.postMessage("logout");
   }
 
-  // 토큰 갱신
-  async refreshAuthToken(refreshToken: string): Promise<AuthTokens> {
-    return this.sendToNative("refreshAuthToken", {
-      refreshToken,
-    }) as Promise<AuthTokens>;
+  /**
+   * 로그아웃 - 로그인 페이지로 이동 (응답 있음)
+   */
+  async logoutWithCallback(): Promise<AuthResult> {
+    return this.postMessageWithCallback("logout") as Promise<AuthResult>;
   }
 
-  // 로그아웃
-  async logout(): Promise<void> {
-    return this.sendToNative("logout") as Promise<void>;
+  /**
+   * 로그인 페이지로 이동
+   */
+  showLogin(): void {
+    this.postMessage("showLogin");
   }
 
-  // 로그인 화면 표시
-  async showLogin(): Promise<void> {
-    return this.sendToNative("showLogin") as Promise<void>;
+  /**
+   * 로그인 페이지로 이동 (응답 있음)
+   */
+  async showLoginWithCallback(): Promise<AuthResult> {
+    return this.postMessageWithCallback("showLogin") as Promise<AuthResult>;
   }
 
-  // 카메라 열기
-  async openCamera(options: CameraOptions = {}): Promise<CameraResult> {
-    return this.sendToNative("openCamera", options) as Promise<CameraResult>;
+  /**
+   * 카메라 열기
+   * @param foodName 음식 이름 (optional)
+   */
+  openCamera(foodName?: string): void {
+    this.postMessage("openCamera", foodName ? { foodName } : undefined);
   }
 
-  // 갤러리 열기
-  async openGallery(options: GalleryOptions = {}): Promise<GalleryResult> {
-    return this.sendToNative("openGallery", options) as Promise<GalleryResult>;
+  /**
+   * 카메라 열기 (응답 있음)
+   * @param foodName 음식 이름 (optional)
+   */
+  async openCameraWithCallback(foodName?: string): Promise<CameraResult> {
+    return this.postMessageWithCallback(
+      "openCamera",
+      foodName ? { foodName } : undefined
+    ) as Promise<CameraResult>;
   }
 
-  // 디바이스 정보 가져오기
-  async getDeviceInfo(): Promise<DeviceInfo> {
-    return this.sendToNative("getDeviceInfo") as Promise<DeviceInfo>;
+  /**
+   * 갤러리 열기
+   */
+  openGallery(): void {
+    this.postMessage("openGallery");
   }
 
-  // 파일 저장
-  async saveFile(data: string, filename: string): Promise<boolean> {
-    const result = (await this.sendToNative("saveFile", {
-      data,
-      filename,
-    })) as { success: boolean };
-    return result.success;
+  /**
+   * 갤러리 열기 (응답 있음)
+   */
+  async openGalleryWithCallback(): Promise<GalleryResult> {
+    return this.postMessageWithCallback(
+      "openGallery"
+    ) as Promise<GalleryResult>;
   }
 
-  // 네트워크 상태 확인
-  async getNetworkStatus(): Promise<NetworkStatus> {
-    return this.sendToNative("getNetworkStatus") as Promise<NetworkStatus>;
+  /**
+   * 네이티브 앱에서 Alert 다이얼로그 표시
+   * @param message 표시할 메시지
+   * @param title 다이얼로그 제목 (optional)
+   */
+  showAlert(message: string, title?: string): void {
+    this.postMessage("showAlert", { message, ...(title && { title }) });
   }
 
-  // 네이티브 알림 표시
-  async showNativeAlert(message: string, title?: string): Promise<void> {
-    return this.sendToNative("showNativeAlert", {
+  /**
+   * 네이티브 앱에서 Alert 다이얼로그 표시 (응답 있음)
+   * @param message 표시할 메시지
+   * @param title 다이얼로그 제목 (optional)
+   */
+  async showAlertWithCallback(
+    message: string,
+    title?: string
+  ): Promise<AuthResult> {
+    return this.postMessageWithCallback("showAlert", {
       message,
-      title,
-    }) as Promise<void>;
-  }
-
-  // 앱 종료
-  closeApp(): void {
-    this.sendToNative("closeApp").catch(console.error);
-  }
-
-  // 앱 최소화
-  minimizeApp(): void {
-    this.sendToNative("minimizeApp").catch(console.error);
-  }
-
-  // 일반적인 메시지 전송 (postMessage)
-  postMessage(type: string, data?: unknown): void {
-    const win = window as Window & {
-      Android?: { postMessage?: (message: string) => void };
-      webkit?: {
-        messageHandlers?: {
-          chalpu?: { postMessage?: (message: NativeBridgeMessage) => void };
-        };
-      };
-    };
-
-    const message = {
-      type,
-      data,
-    };
-
-    // Android WebView
-    if (win.Android?.postMessage) {
-      win.Android.postMessage(JSON.stringify(message));
-    }
-    // iOS WKWebView
-    else if (win.webkit?.messageHandlers?.chalpu?.postMessage) {
-      win.webkit.messageHandlers.chalpu.postMessage(message);
-    }
+      ...(title && { title }),
+    }) as Promise<AuthResult>;
   }
 }
 
@@ -349,7 +315,7 @@ export function useNativeApp() {
     const checkWebView = () => {
       // 1. 브릿지 객체 확인 (가장 확실한 방법)
       const hasBridge = !!(
-        window.Android?.postMessage ||
+        window.NativeBridge?.postMessage ||
         window.webkit?.messageHandlers?.chalpu?.postMessage
       );
 
@@ -365,7 +331,8 @@ export function useNativeApp() {
       const isFromApp = urlParams.has("fromApp") || urlParams.has("app");
 
       // 브릿지 객체가 있거나 명시적으로 앱에서 왔다고 표시된 경우만 웹뷰로 간주
-      const hasNativeApp = hasBridge || hasCustomUserAgent || hasAppConfig || isFromApp;
+      const hasNativeApp =
+        hasBridge || hasCustomUserAgent || hasAppConfig || isFromApp;
       setIsWebView(hasNativeApp);
 
       // 앱에서 주입한 설정 로드
