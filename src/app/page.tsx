@@ -73,17 +73,19 @@ export default function Home() {
     setIsStoreDropdownOpen(false);
   };
 
-  // 로그인 성공 메시지를 네이티브 앱에 전달
-  if (isAvailable && userInfo) {
-    bridge.postMessage("LOGIN_SUCCESS", {
-      userId: userInfo.id,
-      userName: userInfo.name,
-      userEmail: userInfo.email,
-    });
-  }
-  console.log("login success", userInfo);
 
   const handlePhotoGuide = async () => {
+    console.log("카메라 버튼 클릭됨");
+    
+    // 로그인 성공 메시지를 네이티브 앱에 전달
+    if (isAvailable && userInfo) {
+      bridge.postMessage("LOGIN_SUCCESS", {
+        userId: userInfo.id,
+        userName: userInfo.name,
+        userEmail: userInfo.email,
+      });
+    }
+    
     if (isAvailable) {
       try {
         console.log("카메라 촬영 시도");
