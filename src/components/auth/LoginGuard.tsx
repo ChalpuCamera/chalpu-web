@@ -16,7 +16,7 @@ interface LoginGuardProps {
 
 export function LoginGuard({ children }: LoginGuardProps) {
   const { setTokens, clearTokens } = useAuthStore();
-  const { bridge, isAvailable } = useNativeBridge();
+  const { isAvailable } = useNativeBridge();
   const { data: userInfo, isLoading: userInfoLoading, error: userInfoError } = useUserInfo();
 
   // 개발 모드에서 임시 로그인 (테스트용)
@@ -51,15 +51,6 @@ export function LoginGuard({ children }: LoginGuardProps) {
 
   // 유저 정보 로드 성공 시 - 자식 컴포넌트 렌더링
   if (userInfo && !userInfoError) {
-    // 로그인 성공 메시지를 네이티브 앱에 전달
-    if (isAvailable) {
-      bridge.postMessage('LOGIN_SUCCESS', {
-        userId: userInfo.id,
-        userName: userInfo.name,
-        userEmail: userInfo.email
-      });
-    }
-    console.log("login success", userInfo);
     return <>{children}</>;
   }
 

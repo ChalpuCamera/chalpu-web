@@ -37,15 +37,15 @@ export default function Home() {
   const createActivity = useCreateActivity();
   const { getCacheInfo, forceRefresh } = useActivityCache();
   const router = useRouter();
-  
+
   // 오늘의 팁 데이터 가져오기
-  const { data: todayTip, isLoading: tipLoading, error: tipError } = useTodayTip();
-  // zustand 스토어 직접 사용
   const {
-    tokens,
-    isLoading: authLoading,
-    isLoggedIn,
-  } = useAuthStore();
+    data: todayTip,
+    isLoading: tipLoading,
+    error: tipError,
+  } = useTodayTip();
+  // zustand 스토어 직접 사용
+  const { tokens, isLoading: authLoading, isLoggedIn } = useAuthStore();
   const { logout } = useAuth(); // 로그아웃 함수만 훅에서 가져오기
 
   // 사용자 정보 가져오기
@@ -73,11 +73,22 @@ export default function Home() {
     setIsStoreDropdownOpen(false);
   };
 
+  // 로그인 성공 메시지를 네이티브 앱에 전달
+  if (isAvailable && userInfo) {
+    bridge.postMessage("LOGIN_SUCCESS", {
+      userId: userInfo.id,
+      userName: userInfo.name,
+      userEmail: userInfo.email,
+    });
+  }
+  console.log("login success", userInfo);
+
   const handlePhotoGuide = async () => {
     if (isAvailable) {
       try {
+        console.log("카메라 촬영 시도");
         const result = await bridge.openCamera({
-          foodName: "guide_photo"
+          foodName: "guide_photo",
         });
 
         if (result.success) {
@@ -351,7 +362,7 @@ export default function Home() {
                     onError={(e) => {
                       // 이미지 로드 실패 시 기본 아이콘으로 대체
                       const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
+                      target.style.display = "none";
                       target.parentElement!.innerHTML = `<FontAwesome icon={faLightbulb} className="text-2xl text-orange-600" />`;
                     }}
                   />
@@ -385,8 +396,8 @@ export default function Home() {
                   <>
                     <h4 className="font-medium mb-1">자연광 활용하기</h4>
                     <p className="text-sm text-gray-600">
-                      창가 근처에서 촬영하면 음식이 더욱 맛있어 보여요. 플래시보다는
-                      자연스러운 빛을 활용해 보세요!
+                      창가 근처에서 촬영하면 음식이 더욱 맛있어 보여요.
+                      플래시보다는 자연스러운 빛을 활용해 보세요!
                     </p>
                   </>
                 )}
