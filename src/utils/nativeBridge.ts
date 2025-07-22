@@ -55,6 +55,14 @@ export interface AuthResult {
   success: boolean;
 }
 
+// 인증 토큰 타입
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // seconds
+  tokenType?: string;
+}
+
 class NativeBridge {
   private callbackCounter = 0;
   private pendingCallbacks: Map<string, (result: unknown) => void> = new Map();

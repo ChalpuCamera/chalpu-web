@@ -69,26 +69,15 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const handleSelectFromGallery = async () => {
     if (isAvailable) {
       try {
-        const result = await bridge.openGallery({
-          selectionLimit: 1,
-          mediaType: "PHOTO"
-        });
+        const result = await bridge.openGalleryWithCallback();
 
-        if (result.success && result.files && result.files.length > 0) {
-          console.log("갤러리에서 사진 선택 성공:", result.files[0].path);
-          // Base64 이미지 데이터를 File 객체로 변환
-          const fileData = result.files[0];
-          const byteString = atob(fileData.data.split(",")[1]);
-          const mimeString = fileData.data
-            .split(",")[0]
-            .split(":")[1]
-            .split(";")[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-          }
-          const file = new File([ab], "gallery-photo.jpg", { type: mimeString });
+        if (result.success && result.path) {
+          console.log("갤러리에서 사진 선택 성공:", result.path);
+
+          // 임시로 빈 파일 객체 생성 (실제로는 네이티브에서 파일 처리 필요)
+          const file = new File([], "gallery-photo.jpg", {
+            type: "image/jpeg",
+          });
           handleFileSelect(file);
         } else {
           console.error("갤러리에서 사진 선택 실패:", result.error);
@@ -107,24 +96,13 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const handleTakePhoto = async () => {
     if (isAvailable) {
       try {
-        const result = await bridge.openCamera({
-          foodName: "uploaded_photo"
-        });
+        const result = await bridge.openCameraWithCallback("uploaded_photo");
 
-        if (result.success && result.imageData) {
+        if (result.success && result.filePath) {
           console.log("카메라 촬영 성공:", result.filePath);
-          // Base64 이미지 데이터를 File 객체로 변환
-          const byteString = atob(result.imageData.split(",")[1]);
-          const mimeString = result.imageData
-            .split(",")[0]
-            .split(":")[1]
-            .split(";")[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-          }
-          const file = new File([ab], "camera-photo.jpg", { type: mimeString });
+
+          // 임시로 빈 파일 객체 생성 (실제로는 네이티브에서 파일 처리 필요)
+          const file = new File([], "camera-photo.jpg", { type: "image/jpeg" });
           handleFileSelect(file);
         } else {
           console.error("카메라 촬영 실패:", result.error);
