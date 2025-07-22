@@ -227,7 +227,7 @@ const MenuPage: React.FC = () => {
   return (
     <div className="bg-white">
       <NavBar
-        title="메뉴 관리"
+        title="메뉴판"
         onBack={() => router.push("/")}
         rightElement={
           hasStores ? (
