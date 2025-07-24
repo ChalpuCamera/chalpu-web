@@ -17,20 +17,37 @@ export const uploadPhoto = async (
   foodItemId: number
 ): Promise<UploadResult> => {
   try {
+    console.log("=== 사진 업로드 시작 ===");
+    console.log("파일 정보:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+    console.log("매장 ID:", storeId, "음식 ID:", foodItemId);
+
     // 1. Presigned URL 생성
+    console.log("1. Presigned URL 생성 중...");
     const presignedResponse = await photoApi.getPresignedUrl({
       fileName: file.name,
     });
+    console.log("Presigned URL 응답:", presignedResponse);
 
     const { presignedUrl, s3Key } = presignedResponse.result;
+    console.log("Presigned URL:", presignedUrl);
+    console.log("S3 Key:", s3Key);
 
     // 2. S3에 파일 업로드
+    console.log("2. S3 업로드 중...");
     await photoApi.uploadToS3(presignedUrl, file);
+    console.log("S3 업로드 완료");
 
     // 3. 이미지 메타데이터 추출
+    console.log("3. 이미지 메타데이터 추출 중...");
     const { width, height } = await getImageDimensions(file);
+    console.log("이미지 크기:", { width, height });
 
     // 4. 서버에 사진 정보 등록
+    console.log("4. 서버에 사진 정보 등록 중...");
     const registerResponse = await photoApi.registerPhoto({
       s3Key,
       fileName: file.name,
@@ -40,11 +57,14 @@ export const uploadPhoto = async (
       imageWidth: width,
       imageHeight: height,
     });
+    console.log("서버 등록 응답:", registerResponse);
 
-    return {
+    const result = {
       photoId: registerResponse.result.photoId,
       imageUrl: registerResponse.result.imageUrl,
     };
+    console.log("업로드 완료:", result);
+    return result;
   } catch (error) {
     console.error("사진 업로드 실패:", error);
     throw new Error(

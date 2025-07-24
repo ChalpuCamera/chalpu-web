@@ -74,7 +74,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
             onUploadError={onPhotoUploadError}
             mode="create"
             maxPhotos={10}
-            previewOnly={true}
+            previewOnly={true} // 미리보기만, 등록 버튼 클릭 시 업로드
           />
         )}
       </div>
@@ -108,7 +108,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
               showGalleryButton={true}
               showCameraButton={false}
               maxPhotos={10}
-              previewOnly={true} // edit 모드에서도 미리보기만
+              previewOnly={true} // 미리보기만, 수정 버튼 클릭 시 업로드
             />
           </div>
 
@@ -140,7 +140,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
             onUploadError={onPhotoUploadError}
             mode="create" // edit 모드지만 create UI 사용
             maxPhotos={10}
-            previewOnly={true} // edit 모드에서도 미리보기만
+            previewOnly={true} // 미리보기만, 수정 버튼 클릭 시 업로드
           />
         </div>
       );
