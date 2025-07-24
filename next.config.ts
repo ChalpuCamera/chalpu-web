@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     loader: "default",
-    unoptimized: false,
+    unoptimized: true,
 
     // 외부 이미지 도메인
     remotePatterns: [
