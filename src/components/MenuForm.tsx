@@ -10,6 +10,7 @@ import MenuPhotoSection from "@/components/MenuPhotoSection";
 import { usePhotosByFood } from "@/hooks/usePhoto";
 import { useNativeBridge } from "@/utils/nativeBridge";
 import { useSearchParams } from "next/navigation";
+import { uploadPhoto } from "@/utils/photoUpload";
 
 interface MenuFormProps {
   mode: "create" | "edit";
@@ -86,9 +87,12 @@ const MenuForm: React.FC<MenuFormProps> = ({
     alert(`사진 업로드 실패: ${error}`);
   };
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const handleFileSelect = (file: File) => {
-    // 파일 선택 시 바로 업로드 처리
+    // 파일 선택 시 상태에 저장 (실제 업로드는 onSubmit에서 처리)
     console.log("파일 선택됨:", file.name);
+    setSelectedFile(file);
   };
 
   const handlePhotoDelete = () => {
@@ -103,10 +107,10 @@ const MenuForm: React.FC<MenuFormProps> = ({
 
   const handleTakeNewPhoto = () => {
     if (isAvailable) {
-      bridge.openCameraWithCallback((result) => {
-        if (result.success && result.filePath) {
+      bridge.openCamera((result) => {
+        if (result.success && result.tempFileURL) {
           // 새로 찍은 사진 처리
-          console.log("새로 찍은 사진:", result.filePath);
+          console.log("새로 찍은 사진:", result.tempFileURL);
         } else {
           console.error("카메라 호출 실패:", result.error);
           alert("카메라를 사용할 수 없습니다.");
@@ -145,8 +149,33 @@ const MenuForm: React.FC<MenuFormProps> = ({
     }
 
     try {
-      // 메뉴 정보를 저장
-      await onSubmit(formData);
+      // 먼저 메뉴 정보를 저장 (foodId 생성)
+      const result = await onSubmit(formData);
+      console.log("메뉴 저장 완료:", result);
+
+      // 메뉴 저장 후 사진이 있는 경우 업로드
+      if (selectedFile) {
+        console.log("사진 업로드 시작...");
+        try {
+          // edit 모드에서는 foodId가 이미 있음, create 모드에서는 result에서 가져옴
+          const targetFoodId =
+            mode === "edit" ? foodId : result?.result?.foodItemId;
+          if (targetFoodId) {
+            const uploadResult = await uploadPhoto(
+              selectedFile,
+              storeId,
+              targetFoodId
+            );
+            console.log("사진 업로드 완료:", uploadResult);
+          } else {
+            console.error("foodId를 찾을 수 없어 사진 업로드를 건너뜁니다.");
+          }
+        } catch (error) {
+          console.error("사진 업로드 실패:", error);
+          // 사진 업로드 실패해도 메뉴는 저장되었으므로 경고만 표시
+          alert("메뉴는 저장되었지만 사진 업로드에 실패했습니다.");
+        }
+      }
     } catch (error) {
       console.error("메뉴 저장 실패:", error);
       throw error; // 상위 컴포넌트에서 에러 처리할 수 있도록 re-throw
@@ -215,18 +244,18 @@ const MenuForm: React.FC<MenuFormProps> = ({
       </div>
 
       {/* Bottom Buttons */}
-      <div className="flex gap-4 pt-8 pb-8">
+      <div className="flex gap-4 py-8">
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 rounded-lg"
+          className="flex-1 rounded-lg"
           onClick={() => window.history.back()}
         >
           취소
         </Button>
         <Button
           type="submit"
-          className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           disabled={isPending}
         >
           {isPending ? pendingText : submitText}

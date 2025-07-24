@@ -212,18 +212,48 @@ export function LoginGuard({ children }: LoginGuardProps) {
   };
 
   const handleTestCameraSimple = () => {
-    console.log("단순 카메라 테스트 (응답 없음)");
-    bridge.openCamera("test_food");
+    console.log("🎯 [handleTestCameraSimple] 카메라 테스트 시작");
+    if (isAvailable) {
+      bridge.openCamera("test_food", (result) => {
+        console.log("🎯 [handleTestCameraSimple] 콜백 함수 실행됨");
+        console.log("🎯 [handleTestCameraSimple] 결과:", result);
+
+        if (result.success) {
+          console.log("🎯 [handleTestCameraSimple] 카메라 촬영 성공");
+          if (result.tempFileURL) {
+            console.log(
+              "🎯 [handleTestCameraSimple] 파일 URL:",
+              result.tempFileURL
+            );
+          } else {
+            console.log(
+              "🎯 [handleTestCameraSimple] 파일 URL 없음 (요청만 수락됨)"
+            );
+          }
+          bridge.showAlert("카메라 촬영 성공!", "테스트");
+        } else {
+          console.error(
+            "🎯 [handleTestCameraSimple] 카메라 촬영 실패:",
+            result.error
+          );
+          bridge.showAlert("카메라 촬영 실패", "테스트");
+        }
+      });
+    } else {
+      console.log(
+        "🎯 [handleTestCameraSimple] 네이티브 앱에서만 사용 가능합니다."
+      );
+    }
   };
 
   const handleTestGallery = () => {
     console.log("갤러리 테스트 시작");
     if (isAvailable) {
-      bridge.openGalleryWithCallback((result) => {
+      bridge.openGallery((result) => {
         console.log("갤러리 결과:", result);
         if (result.success) {
           bridge.showAlert(
-            `갤러리에서 파일을 선택했습니다: ${result.path}`,
+            `갤러리에서 파일을 선택했습니다: ${result.tempFileURL}`,
             "성공"
           );
         } else {
@@ -368,7 +398,7 @@ export function LoginGuard({ children }: LoginGuardProps) {
             </div>
           </div>
         )}
-        {isAvailable && children}
+        {children}
       </>
     );
   }

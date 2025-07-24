@@ -72,10 +72,18 @@ export default function Home() {
       });
     }
     if (isAvailable) {
-      console.log("카메라 촬영 시도");
-      bridge.openCameraWithCallback((result) => {
+      console.log("🎯 [handlePhotoGuide] 카메라 촬영 시도");
+      bridge.openCamera("guide_photo", (result) => {
+        console.log("🎯 [handlePhotoGuide] 콜백 함수 실행됨");
+        console.log("🎯 [handlePhotoGuide] 결과:", result);
+
         if (result.success) {
-          console.log("카메라 촬영 성공:", result.filePath);
+          console.log("🎯 [handlePhotoGuide] 카메라 촬영 성공");
+          if (result.tempFileURL) {
+            console.log("🎯 [handlePhotoGuide] 파일 URL:", result.tempFileURL);
+          } else {
+            console.log("🎯 [handlePhotoGuide] 파일 URL 없음 (요청만 수락됨)");
+          }
           // 촬영된 이미지로 가이드 처리 로직 추가
           // 활동 로그 생성
           createActivity.mutate({
@@ -84,11 +92,14 @@ export default function Home() {
             description: "카메라를 사용하여 음식 사진을 촬영했습니다",
           });
         } else {
-          console.error("카메라 촬영 실패:", result.error);
+          console.error(
+            "🎯 [handlePhotoGuide] 카메라 촬영 실패:",
+            result.error
+          );
         }
-      }, "guide_photo");
+      });
     } else {
-      console.log("네이티브 앱에서만 사용 가능합니다.");
+      console.log("🎯 [handlePhotoGuide] 네이티브 앱에서만 사용 가능합니다.");
     }
   };
 

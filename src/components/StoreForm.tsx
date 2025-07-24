@@ -290,18 +290,18 @@ const StoreForm: React.FC<StoreFormProps> = ({
       </div> */}
 
       {/* Bottom Buttons */}
-      <div className="flex gap-4 pt-8 pb-8">
+      <div className="flex gap-4 py-8">
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 rounded-lg"
+          className="flex-1 rounded-lg"
           onClick={handleCancel}
         >
           취소
         </Button>
         <Button
           type="submit"
-          className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           disabled={isLoading || (isEditMode && !hasChanges)}
         >
           {isLoading
