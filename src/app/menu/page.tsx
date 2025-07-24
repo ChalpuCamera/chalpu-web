@@ -423,7 +423,6 @@ const MenuPage: React.FC = () => {
       {/* Photo Download Dialog */}
       {selectedFoodForDownload && (
         <PhotoDownload
-          foodId={selectedFoodForDownload.foodItemId}
           foodName={selectedFoodForDownload.foodName}
           thumbnailUrl={selectedFoodForDownload.thumbnailUrl}
           onClose={handleCloseDownload}
