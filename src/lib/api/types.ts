@@ -148,21 +148,21 @@ export interface UpdateFoodRequest {
   isActive?: boolean;
 }
 
-// Photo 타입
+// Photo 타입 (실제 API 스펙)
 export interface Photo {
   photoId: number;
   storeId: number;
-  foodId: number;
+  foodId: number; // API에서는 foodId로 사용
   imageUrl: string;
   fileName: string;
   fileSize: number;
   imageWidth: number;
   imageHeight: number;
-  isFeatured: boolean;
+  isFeatured?: boolean; // 대표 사진 여부
   createdAt: string;
 }
 
-// 사진 등록 요청 타입
+// 사진 등록 요청 타입 (실제 API 스펙)
 export interface RegisterPhotoRequest {
   s3Key: string;
   fileName: string;
@@ -173,10 +173,10 @@ export interface RegisterPhotoRequest {
   imageHeight: number;
 }
 
-// 대표 사진 설정 요청 타입
+// 대표 사진 설정 요청 타입 (실제 API 스펙)
 export interface SetFeaturedPhotoRequest {
   photoId: number;
-  isFeatured: boolean;
+  foodItemId: number;
 }
 
 // Presigned URL 요청 타입

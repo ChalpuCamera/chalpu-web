@@ -15,6 +15,7 @@ import {
   faCheck,
   faGripVertical,
   faImage,
+  faDownload,
 } from "@fortawesome/free-solid-svg-icons";
 import { useMyStores } from "@/hooks/useStore";
 import { useFoodsByStore, useDeleteFood } from "@/hooks/useFood";
@@ -22,12 +23,17 @@ import { Food } from "@/lib/api/types";
 import Image from "next/image";
 import NavBar from "@/components/ui/navbar";
 import { useAlertDialog } from "@/components/ui/alert-dialog";
+import PhotoDownload from "@/components/PhotoDownload";
 
 const MenuPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlStoreId = searchParams.get("storeId");
   const { showAlert, AlertDialogComponent } = useAlertDialog();
+
+  // 다운로드 다이얼로그 상태
+  const [selectedFoodForDownload, setSelectedFoodForDownload] =
+    useState<Food | null>(null);
 
   // 매장 목록 조회
   const { data: storesData } = useMyStores({
@@ -124,6 +130,14 @@ const MenuPage: React.FC = () => {
 
   const handleEditMenu = (foodId: number) => {
     router.push(`/menu/${foodId}/edit`);
+  };
+
+  const handleDownloadMenu = (food: Food) => {
+    setSelectedFoodForDownload(food);
+  };
+
+  const handleCloseDownload = () => {
+    setSelectedFoodForDownload(null);
   };
 
   const handleDeleteMenu = async (foodId: number, foodName: string) => {
@@ -368,7 +382,7 @@ const MenuPage: React.FC = () => {
                 <p className="text-base text-gray-600 line-clamp-2 mb-2">
                   {food.description}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
@@ -377,6 +391,15 @@ const MenuPage: React.FC = () => {
                   >
                     <FontAwesomeIcon icon={faEdit} className="mr-1" />
                     수정
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg"
+                    onClick={() => handleDownloadMenu(food)}
+                  >
+                    <FontAwesomeIcon icon={faDownload} className="mr-1" />
+                    다운로드
                   </Button>
                   <Button
                     variant="outline"
@@ -396,6 +419,17 @@ const MenuPage: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Photo Download Dialog */}
+      {selectedFoodForDownload && (
+        <PhotoDownload
+          foodId={selectedFoodForDownload.foodItemId}
+          foodName={selectedFoodForDownload.foodName}
+          thumbnailUrl={selectedFoodForDownload.thumbnailUrl}
+          onClose={handleCloseDownload}
+        />
+      )}
+
       {AlertDialogComponent}
     </div>
   );

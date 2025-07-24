@@ -4,16 +4,31 @@ import React, { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faTrash, faImage } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCamera,
+  faTrash,
+  faImage,
+  faFolder,
+  faExclamationTriangle,
+} from "@fortawesome/free-solid-svg-icons";
 import { uploadPhoto } from "@/utils/photoUpload";
 import { useNativeBridge } from "@/utils/nativeBridge";
+import { usePhotosByFood } from "@/hooks/usePhoto";
 
 interface PhotoUploadProps {
   storeId: number;
   foodItemId: number;
-  onUploadSuccess: (photoId: number, imageUrl: string) => void;
-  onUploadError: (error: string) => void;
+  onUploadSuccess?: (photoId: number, imageUrl: string) => void;
+  onUploadError?: (error: string) => void;
+  onFileSelect?: (file: File) => void;
+  onFileRemove?: () => void;
   className?: string;
+  mode?: "create" | "gallery-only";
+  showCameraButton?: boolean;
+  showGalleryButton?: boolean;
+  description?: string;
+  maxPhotos?: number;
+  previewOnly?: boolean;
 }
 
 const PhotoUpload: React.FC<PhotoUploadProps> = ({
@@ -21,7 +36,15 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   foodItemId,
   onUploadSuccess,
   onUploadError,
+  onFileSelect,
+  onFileRemove,
   className = "",
+  mode = "create",
+  showCameraButton = true,
+  showGalleryButton = true,
+  description,
+  maxPhotos = 10,
+  previewOnly = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -29,27 +52,89 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // CDN에 저장된 사진 조회 (1개만) - edit 모드에서만 사용
+  const { data: cdnPhotoData } = usePhotosByFood(foodItemId, {
+    page: 0,
+    size: 1,
+  });
+
+  // 현재 음식의 사진들 조회 (edit 모드에서)
+  const { data: currentFoodPhotosData } = usePhotosByFood(foodItemId, {
+    page: 0,
+    size: 10,
+  });
+
+  const cdnPhoto = cdnPhotoData?.result?.content?.[0] || null;
+  const currentFoodPhotos = currentFoodPhotosData?.result?.content || [];
+  const currentPhotoCount = mode === "create" ? 0 : currentFoodPhotos.length;
+  const isAtMaxLimit = currentPhotoCount >= maxPhotos;
+
   const handleFileSelect = useCallback(
     async (file: File) => {
       if (!file) return;
 
+      // 사진 개수 제한 확인
+      if (isAtMaxLimit) {
+        onUploadError?.(`최대 ${maxPhotos}개까지만 사진을 등록할 수 있습니다.`);
+        return;
+      }
+
+      // 파일 크기 제한 (10MB)
+      const maxFileSize = 10 * 1024 * 1024;
+      if (file.size > maxFileSize) {
+        onUploadError?.("파일 크기는 10MB 이하여야 합니다.");
+        return;
+      }
+
+      // 파일 형식 확인
+      if (!file.type.startsWith("image/")) {
+        onUploadError?.("이미지 파일만 업로드할 수 있습니다.");
+        return;
+      }
+
       try {
-        setIsUploading(true);
         setPreviewUrl(URL.createObjectURL(file));
 
+        // previewOnly가 true이면 업로드하지 않고 미리보기만
+        if (previewOnly) {
+          onFileSelect?.(file);
+          return;
+        }
+
+        setIsUploading(true);
+
         const result = await uploadPhoto(file, storeId, foodItemId);
-        onUploadSuccess(result.photoId, result.imageUrl);
+
+        // 첫 번째 사진인 경우 대표 사진으로 자동 설정은 API에서 처리됨
+        onUploadSuccess?.(result.photoId, result.imageUrl);
+
+        // 미리보기 URL 정리
+        URL.revokeObjectURL(previewUrl!);
+        setPreviewUrl(null);
       } catch (error) {
         console.error("사진 업로드 실패:", error);
-        onUploadError(
+        onUploadError?.(
           error instanceof Error ? error.message : "사진 업로드에 실패했습니다."
         );
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
         setPreviewUrl(null);
       } finally {
         setIsUploading(false);
       }
     },
-    [storeId, foodItemId, onUploadSuccess, onUploadError]
+    [
+      storeId,
+      foodItemId,
+      onUploadSuccess,
+      onUploadError,
+      onFileSelect,
+      isAtMaxLimit,
+      maxPhotos,
+      previewUrl,
+      previewOnly,
+    ]
   );
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,62 +145,240 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   const handleRemove = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    onFileRemove?.();
   };
 
-  const handleSelectFromGallery = async () => {
+  const handleSelectFromDeviceGallery = () => {
+    if (isAtMaxLimit) {
+      onUploadError?.(`최대 ${maxPhotos}개까지만 사진을 등록할 수 있습니다.`);
+      return;
+    }
+
     if (isAvailable) {
-      try {
-        const result = await bridge.openGalleryWithCallback();
+      bridge.openGalleryWithCallback((result) => {
+        console.log("갤러리 콜백 결과:", result);
 
         if (result.success && result.path) {
           console.log("갤러리에서 사진 선택 성공:", result.path);
 
-          // 임시로 빈 파일 객체 생성 (실제로는 네이티브에서 파일 처리 필요)
-          const file = new File([], "gallery-photo.jpg", {
-            type: "image/jpeg",
-          });
-          handleFileSelect(file);
-        } else {
+          if (previewOnly) {
+            // previewOnly 모드일 때는 미리보기만 설정
+            setPreviewUrl(result.path); // 네이티브에서 받은 경로를 미리보기로 사용
+            // TODO: 실제 파일 객체를 생성해서 onFileSelect에 전달
+            onFileSelect?.(
+              new File([], "gallery-photo.jpg", { type: "image/jpeg" })
+            );
+          } else {
+            // TODO: 네이티브에서 실제 파일 데이터를 받아서 처리
+            // 현재는 임시로 빈 파일 객체 생성
+            const file = new File([], "gallery-photo.jpg", {
+              type: "image/jpeg",
+            });
+            handleFileSelect(file);
+          }
+        } else if (result.success === false && result.error) {
+          // 실제 오류가 발생한 경우
           console.error("갤러리에서 사진 선택 실패:", result.error);
-          onUploadError(result.error || "사진 선택에 실패했습니다.");
+          onUploadError?.(result.error);
+        } else {
+          // 사용자가 사진을 선택하지 않고 취소한 경우 (오류 아님)
+          console.log("사용자가 갤러리에서 사진 선택을 취소했습니다.");
         }
-      } catch (error) {
-        console.error("갤러리 호출 실패:", error);
-        onUploadError("갤러리를 사용할 수 없습니다.");
-      }
+      });
     } else {
       // 웹에서는 기존 파일 입력 사용
       fileInputRef.current?.click();
     }
   };
 
-  const handleTakePhoto = async () => {
+  const handleSelectFromCdnGallery = () => {
+    if (isAtMaxLimit) {
+      onUploadError?.(`최대 ${maxPhotos}개까지만 사진을 등록할 수 있습니다.`);
+      return;
+    }
+
+    if (cdnPhoto) {
+      // CDN에 저장된 사진을 현재 음식에 연결하는 로직 필요
+      // 현재는 단순히 미리보기만 표시
+      setPreviewUrl(cdnPhoto.imageUrl);
+      onUploadSuccess?.(cdnPhoto.photoId, cdnPhoto.imageUrl);
+    } else {
+      onUploadError?.("저장된 사진이 없습니다.");
+    }
+  };
+
+  const handleTakePhoto = () => {
+    if (isAtMaxLimit) {
+      onUploadError?.(`최대 ${maxPhotos}개까지만 사진을 등록할 수 있습니다.`);
+      return;
+    }
+
     if (isAvailable) {
-      try {
-        const result = await bridge.openCameraWithCallback("uploaded_photo");
+      bridge.openCameraWithCallback((result) => {
+        console.log("카메라 콜백 결과:", result);
 
         if (result.success && result.filePath) {
           console.log("카메라 촬영 성공:", result.filePath);
 
-          // 임시로 빈 파일 객체 생성 (실제로는 네이티브에서 파일 처리 필요)
-          const file = new File([], "camera-photo.jpg", { type: "image/jpeg" });
-          handleFileSelect(file);
-        } else {
+          if (previewOnly) {
+            // previewOnly 모드일 때는 미리보기만 설정
+            setPreviewUrl(result.filePath); // 네이티브에서 받은 경로를 미리보기로 사용
+            // TODO: 실제 파일 객체를 생성해서 onFileSelect에 전달
+            onFileSelect?.(
+              new File([], "camera-photo.jpg", { type: "image/jpeg" })
+            );
+          } else {
+            // TODO: 네이티브에서 실제 파일 데이터를 받아서 처리
+            // 현재는 임시로 빈 파일 객체 생성
+            const file = new File([], "camera-photo.jpg", {
+              type: "image/jpeg",
+            });
+            handleFileSelect(file);
+          }
+        } else if (result.success === false && result.error) {
+          // 실제 오류가 발생한 경우
           console.error("카메라 촬영 실패:", result.error);
-          onUploadError(result.error || "사진 촬영에 실패했습니다.");
+          onUploadError?.(result.error);
+        } else {
+          // 사용자가 촬영을 취소한 경우 (오류 아님)
+          console.log("사용자가 카메라 촬영을 취소했습니다.");
         }
-      } catch (error) {
-        console.error("카메라 호출 실패:", error);
-        onUploadError("카메라를 사용할 수 없습니다.");
-      }
+      }, "uploaded_photo");
     } else {
       console.log("네이티브 앱에서만 사용 가능합니다.");
-      onUploadError("네이티브 앱에서만 카메라 기능을 사용할 수 있습니다.");
+      onUploadError?.("네이티브 앱에서만 카메라 기능을 사용할 수 있습니다.");
     }
+  };
+
+  const renderButtons = () => {
+    const buttons = [];
+
+    if (showCameraButton && mode !== "gallery-only") {
+      buttons.push(
+        <div
+          key="camera"
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+            isAtMaxLimit
+              ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+          onClick={isAtMaxLimit ? undefined : handleTakePhoto}
+        >
+          <div className="space-y-2">
+            <FontAwesomeIcon
+              icon={faCamera}
+              className={`text-4xl mx-auto ${
+                isAtMaxLimit ? "text-gray-300" : "text-gray-400"
+              }`}
+            />
+            <div>
+              <p
+                className={`text-base font-medium ${
+                  isAtMaxLimit ? "text-gray-400" : "text-gray-700"
+                }`}
+              >
+                촬영
+              </p>
+              <p
+                className={`text-sm mt-1 ${
+                  isAtMaxLimit ? "text-gray-300" : "text-gray-500"
+                }`}
+              >
+                {isAtMaxLimit ? "최대 개수 초과" : "카메라로 사진 촬영"}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (showGalleryButton) {
+      buttons.push(
+        <div
+          key="gallery"
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+            isAtMaxLimit
+              ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+          onClick={isAtMaxLimit ? undefined : handleSelectFromDeviceGallery}
+        >
+          <div className="space-y-2">
+            <FontAwesomeIcon
+              icon={faImage}
+              className={`text-4xl mx-auto ${
+                isAtMaxLimit ? "text-gray-300" : "text-gray-400"
+              }`}
+            />
+            <div>
+              <p
+                className={`text-base font-medium ${
+                  isAtMaxLimit ? "text-gray-400" : "text-gray-700"
+                }`}
+              >
+                앨범에서 선택
+              </p>
+              <p
+                className={`text-sm mt-1 ${
+                  isAtMaxLimit ? "text-gray-300" : "text-gray-500"
+                }`}
+              >
+                {isAtMaxLimit ? "최대 개수 초과" : "갤러리에서 사진 선택"}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // CDN 갤러리 버튼 (edit 모드이고 CDN에 사진이 있을 때만)
+    if (mode !== "create" && cdnPhoto) {
+      buttons.push(
+        <div
+          key="cdn-gallery"
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+            isAtMaxLimit
+              ? "border-blue-200 bg-blue-25 cursor-not-allowed opacity-50"
+              : "border-blue-300 hover:border-blue-400"
+          }`}
+          onClick={isAtMaxLimit ? undefined : handleSelectFromCdnGallery}
+        >
+          <div className="space-y-2">
+            <FontAwesomeIcon
+              icon={faFolder}
+              className={`text-4xl mx-auto ${
+                isAtMaxLimit ? "text-blue-300" : "text-blue-400"
+              }`}
+            />
+            <div>
+              <p
+                className={`text-base font-medium ${
+                  isAtMaxLimit ? "text-blue-400" : "text-blue-700"
+                }`}
+              >
+                저장된 사진
+              </p>
+              <p
+                className={`text-sm mt-1 ${
+                  isAtMaxLimit ? "text-blue-300" : "text-blue-500"
+                }`}
+              >
+                {isAtMaxLimit ? "최대 개수 초과" : "저장된 사진 사용"}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return buttons;
   };
 
   return (
@@ -128,43 +391,42 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         className="hidden"
       />
 
-      {!previewUrl ? (
-        <div className="grid grid-cols-2 gap-4">
-          <div
-            className="relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors border-gray-300 hover:border-gray-400"
-            onClick={handleTakePhoto}
-          >
-            <div className="space-y-2">
-              <FontAwesomeIcon
-                icon={faCamera}
-                className="text-4xl text-gray-400 mx-auto"
-              />
-              <div>
-                <p className="text-base font-medium text-gray-700">촬영</p>
-                <p className="text-sm text-gray-500 mt-1">카메라로 사진 촬영</p>
-              </div>
-            </div>
-          </div>
+      {description && <p className="text-sm text-gray-600">{description}</p>}
 
-          <div
-            className="relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors border-gray-300 hover:border-gray-400"
-            onClick={handleSelectFromGallery}
-          >
-            <div className="space-y-2">
+      {/* 사진 개수 제한 안내 */}
+      {mode !== "create" && (
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-600">
+            현재 {currentPhotoCount}개 / 최대 {maxPhotos}개
+          </span>
+          {isAtMaxLimit && (
+            <span className="flex items-center gap-1 text-orange-600">
               <FontAwesomeIcon
-                icon={faImage}
-                className="text-4xl text-gray-400 mx-auto"
+                icon={faExclamationTriangle}
+                className="text-xs"
               />
-              <div>
-                <p className="text-base font-medium text-gray-700">
-                  앨범에서 선택
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  갤러리에서 사진 선택
-                </p>
-              </div>
-            </div>
-          </div>
+              최대 개수에 도달했습니다
+            </span>
+          )}
+          {currentPhotoCount === 1 && (
+            <span className="text-sm text-blue-600">
+              첫 번째 사진이 자동으로 대표 사진으로 설정됩니다
+            </span>
+          )}
+        </div>
+      )}
+
+      {!previewUrl ? (
+        <div
+          className={`grid gap-4 ${
+            renderButtons().length === 1
+              ? "grid-cols-1"
+              : renderButtons().length === 2
+              ? "grid-cols-2"
+              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
+          {renderButtons()}
         </div>
       ) : (
         <div className="relative">
