@@ -93,40 +93,39 @@ class NativeBridge {
   }
 
   /**
-   * 네이티브 앱으로 메시지 전송 (응답 있음)
+   * 네이티브 앱으로 메시지 전송 (콜백 기반)
    * @param type 명령어 (브릿지 함수 이름)
+   * @param callback 콜백 함수
    * @param data 전달할 데이터 (optional)
-   * @returns Promise<unknown>
    */
-  async postMessageWithCallback(
+  postMessageWithCallback(
     type: string,
+    callback: (result: unknown) => void,
     data?: unknown
-  ): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      if (typeof window === "undefined") {
-        reject(new Error("Window is not available"));
-        return;
+  ): void {
+    if (typeof window === "undefined") {
+      callback({ success: false, error: "Window is not available" });
+      return;
+    }
+
+    const callbackId = `callback_${++this.callbackCounter}`;
+    this.pendingCallbacks.set(callbackId, callback);
+
+    const message: NativeBridgeMessage = {
+      type,
+      ...(data !== undefined && { data }),
+      callback: callbackId,
+    };
+
+    this.sendMessage(message);
+
+    // 타임아웃 설정 (10초)
+    setTimeout(() => {
+      if (this.pendingCallbacks.has(callbackId)) {
+        this.pendingCallbacks.delete(callbackId);
+        callback({ success: false, error: "Native call timeout" });
       }
-
-      const callbackId = `callback_${++this.callbackCounter}`;
-      this.pendingCallbacks.set(callbackId, resolve);
-
-      const message: NativeBridgeMessage = {
-        type,
-        ...(data !== undefined && { data }),
-        callback: callbackId,
-      };
-
-      this.sendMessage(message);
-
-      // 타임아웃 설정 (10초)
-      setTimeout(() => {
-        if (this.pendingCallbacks.has(callbackId)) {
-          this.pendingCallbacks.delete(callbackId);
-          reject(new Error("Native call timeout"));
-        }
-      }, 10000);
-    });
+    }, 10000);
   }
 
   // 실제 메시지 전송 로직
@@ -230,10 +229,13 @@ class NativeBridge {
   }
 
   /**
-   * 로그아웃 - 로그인 페이지로 이동 (응답 있음)
+   * 로그아웃 - 로그인 페이지로 이동 (콜백 기반)
    */
-  async logoutWithCallback(): Promise<AuthResult> {
-    return this.postMessageWithCallback("logout") as Promise<AuthResult>;
+  logoutWithCallback(callback: (result: AuthResult) => void): void {
+    this.postMessageWithCallback(
+      "logout",
+      callback as (result: unknown) => void
+    );
   }
 
   /**
@@ -244,10 +246,13 @@ class NativeBridge {
   }
 
   /**
-   * 로그인 페이지로 이동 (응답 있음)
+   * 로그인 페이지로 이동 (콜백 기반)
    */
-  async showLoginWithCallback(): Promise<AuthResult> {
-    return this.postMessageWithCallback("showLogin") as Promise<AuthResult>;
+  showLoginWithCallback(callback: (result: AuthResult) => void): void {
+    this.postMessageWithCallback(
+      "showLogin",
+      callback as (result: unknown) => void
+    );
   }
 
   /**
@@ -259,14 +264,19 @@ class NativeBridge {
   }
 
   /**
-   * 카메라 열기 (응답 있음)
+   * 카메라 열기 (콜백 기반)
+   * @param callback 콜백 함수
    * @param foodName 음식 이름 (optional)
    */
-  async openCameraWithCallback(foodName?: string): Promise<CameraResult> {
-    return this.postMessageWithCallback(
+  openCameraWithCallback(
+    callback: (result: CameraResult) => void,
+    foodName?: string
+  ): void {
+    this.postMessageWithCallback(
       "openCamera",
+      callback as (result: unknown) => void,
       foodName ? { foodName } : undefined
-    ) as Promise<CameraResult>;
+    );
   }
 
   /**
@@ -277,12 +287,13 @@ class NativeBridge {
   }
 
   /**
-   * 갤러리 열기 (응답 있음)
+   * 갤러리 열기 (콜백 기반)
    */
-  async openGalleryWithCallback(): Promise<GalleryResult> {
-    return this.postMessageWithCallback(
-      "openGallery"
-    ) as Promise<GalleryResult>;
+  openGalleryWithCallback(callback: (result: GalleryResult) => void): void {
+    this.postMessageWithCallback(
+      "openGallery",
+      callback as (result: unknown) => void
+    );
   }
 
   /**
@@ -295,18 +306,24 @@ class NativeBridge {
   }
 
   /**
-   * 네이티브 앱에서 Alert 다이얼로그 표시 (응답 있음)
+   * 네이티브 앱에서 Alert 다이얼로그 표시 (콜백 기반)
+   * @param callback 콜백 함수
    * @param message 표시할 메시지
    * @param title 다이얼로그 제목 (optional)
    */
-  async showAlertWithCallback(
+  showAlertWithCallback(
+    callback: (result: AuthResult) => void,
     message: string,
     title?: string
-  ): Promise<AuthResult> {
-    return this.postMessageWithCallback("showAlert", {
-      message,
-      ...(title && { title }),
-    }) as Promise<AuthResult>;
+  ): void {
+    this.postMessageWithCallback(
+      "showAlert",
+      callback as (result: unknown) => void,
+      {
+        message,
+        ...(title && { title }),
+      }
+    );
   }
 }
 
