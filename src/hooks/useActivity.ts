@@ -25,6 +25,7 @@ const activityCache = {
   // 활동 저장
   save: (activities: Activity[]) => {
     try {
+      if (typeof window === "undefined") return; // SSR 환경에서는 실행하지 않음
       const data: CachedActivityData = {
         activities,
         timestamp: Date.now(),
@@ -38,6 +39,7 @@ const activityCache = {
   // 활동 불러오기
   load: (): Activity[] | null => {
     try {
+      if (typeof window === "undefined") return null; // SSR 환경에서는 null 반환
       const cached = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       if (!cached) return null;
 
@@ -70,6 +72,7 @@ const activityCache = {
   // 캐시 삭제
   clear: () => {
     try {
+      if (typeof window === "undefined") return; // SSR 환경에서는 실행하지 않음
       localStorage.removeItem(ACTIVITY_STORAGE_KEY);
     } catch (error) {
       console.warn("활동 캐시 삭제 실패:", error);
@@ -79,6 +82,7 @@ const activityCache = {
   // 캐시 유효성 확인
   isValid: (): boolean => {
     try {
+      if (typeof window === "undefined") return false; // SSR 환경에서는 false 반환
       const cached = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       if (!cached) return false;
 
@@ -125,7 +129,7 @@ export const useCreateActivity = () => {
     mutationFn: async (newActivityData: Omit<Activity, "id" | "timestamp">) => {
       // 로컬에서만 활동 생성 (백엔드 API 호출 없음)
       const newActivity: Activity = {
-        id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `local_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         ...newActivityData,
         timestamp: new Date().toISOString(),
       };
@@ -158,6 +162,7 @@ export const useActivityCache = () => {
         isValid: activityCache.isValid(),
         lastUpdate: (() => {
           try {
+            if (typeof window === "undefined") return null; // SSR 환경에서는 null 반환
             const data = localStorage.getItem(ACTIVITY_STORAGE_KEY);
             if (data) {
               const parsed: CachedActivityData = JSON.parse(data);
