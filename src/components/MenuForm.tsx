@@ -5,24 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CreateFoodRequest, UpdateFoodRequest, Food, Photo } from "@/lib/api/types";
-import PhotoUpload from "@/components/PhotoUpload";
-import PhotoGallery from "@/components/PhotoGallery";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { CreateFoodRequest, UpdateFoodRequest, Food } from "@/lib/api/types";
+import MenuPhotoSection from "@/components/MenuPhotoSection";
+import { usePhotosByFood } from "@/hooks/usePhoto";
+import { useNativeBridge } from "@/utils/nativeBridge";
+import { useSearchParams } from "next/navigation";
 
 interface MenuFormProps {
   mode: "create" | "edit";
   storeId: number;
   foodId?: number; // edit 모드에서만 사용
   initialData?: Food; // edit 모드에서만 사용
-  onSubmit: (data: CreateFoodRequest | UpdateFoodRequest) => void; // Promise 제거
+  onSubmit: (
+    data: CreateFoodRequest | UpdateFoodRequest
+  ) => Promise<{ result: Food }> | void;
   isPending: boolean;
   submitText: string;
   pendingText: string;
@@ -38,25 +34,33 @@ const MenuForm: React.FC<MenuFormProps> = ({
   submitText,
   pendingText,
 }) => {
+  const searchParams = useSearchParams();
+  const { bridge, isAvailable } = useNativeBridge();
+
+  // 네이티브에서 전달받은 사진 경로 확인
+  const nativePhotoPath = searchParams.get("photoPath");
+  const fromNativeCamera = searchParams.get("fromCamera") === "true";
+
+  // 단순화된 폼 데이터 (이름, 설명, 가격만)
   const [formData, setFormData] = useState<
     CreateFoodRequest | UpdateFoodRequest
   >({
     foodName: "",
     description: "",
-    ingredients: "",
-    cookingMethod: "",
     price: 0,
-    stock: 0,
     isActive: true,
   });
 
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
+  // 선택된 이미지 파일들 (미리보기용)
 
-  // 사진은 음식 데이터의 thumbnailUrl을 사용
-  const photos: Photo[] = [];
-  const refetchPhotos = () => {};
+  // 음식별 사진 목록 조회 (edit 모드에서만)
+  const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
+    foodId || 0,
+    { page: 0, size: 10 }
+  );
+
+  const photos = photosData?.result?.content || [];
+  const hasExistingPhotos = photos.length > 0;
 
   // 초기 데이터 설정
   useEffect(() => {
@@ -64,24 +68,27 @@ const MenuForm: React.FC<MenuFormProps> = ({
       setFormData({
         foodName: initialData.foodName,
         description: initialData.description,
-        ingredients: initialData.ingredients,
-        cookingMethod: initialData.cookingMethod,
         price: initialData.price,
-        stock: 0, // API에서 stock 필드가 없으므로 기본값
         isActive: initialData.isActive,
       });
     }
-  }, [mode, initialData]);
+  }, [mode, initialData, storeId]);
 
-  const handlePhotoUploadSuccess = () => {
-    // 사진 업로드 성공 시 사진 목록 새로고침 (edit 모드에서만)
-    if (mode === "edit") {
-      refetchPhotos();
+  // 네이티브에서 사진 촬영 후 진입한 경우 처리
+  useEffect(() => {
+    if (fromNativeCamera && nativePhotoPath) {
+      // TODO: 네이티브에서 전달받은 사진 파일 처리
+      console.log("네이티브에서 촬영된 사진:", nativePhotoPath);
     }
-  };
+  }, [fromNativeCamera, nativePhotoPath]);
 
   const handlePhotoUploadError = (error: string) => {
     alert(`사진 업로드 실패: ${error}`);
+  };
+
+  const handleFileSelect = (file: File) => {
+    // 파일 선택 시 바로 업로드 처리
+    console.log("파일 선택됨:", file.name);
   };
 
   const handlePhotoDelete = () => {
@@ -94,30 +101,20 @@ const MenuForm: React.FC<MenuFormProps> = ({
     refetchPhotos();
   };
 
-  const handlePlatformPhotoSave = (platform: string) => {
-    setSelectedPlatform(platform);
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmSave = () => {
-    // 플랫폼별 사진 저장 로직
-    console.log(`${selectedPlatform} 사진 저장 시작`);
-    
-    // TODO: 실제 플랫폼별 사진 저장 API 호출 로직
-    // 예: 해당 플랫폼에 사진을 업로드하는 로직
-    
-    setShowConfirmDialog(false);
-    setShowSuccessDialog(true);
-  };
-
-  const handleCancelSave = () => {
-    setShowConfirmDialog(false);
-    setSelectedPlatform("");
-  };
-
-  const handleSuccessDialogClose = () => {
-    setShowSuccessDialog(false);
-    setSelectedPlatform("");
+  const handleTakeNewPhoto = () => {
+    if (isAvailable) {
+      bridge.openCameraWithCallback((result) => {
+        if (result.success && result.filePath) {
+          // 새로 찍은 사진 처리
+          console.log("새로 찍은 사진:", result.filePath);
+        } else {
+          console.error("카메라 호출 실패:", result.error);
+          alert("카메라를 사용할 수 없습니다.");
+        }
+      });
+    } else {
+      alert("네이티브 앱에서만 카메라 기능을 사용할 수 있습니다.");
+    }
   };
 
   const handleInputChange = (
@@ -125,9 +122,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
     field: keyof (CreateFoodRequest | UpdateFoodRequest)
   ) => {
     const value =
-      field === "price" || field === "stock"
-        ? parseInt(e.target.value) || 0
-        : e.target.value;
+      field === "price" ? parseInt(e.target.value) || 0 : e.target.value;
 
     setFormData((prev) => ({
       ...prev,
@@ -137,7 +132,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // 유효성 검사
     if (!formData.foodName?.trim()) {
       alert("음식명을 입력해주세요.");
@@ -149,71 +144,36 @@ const MenuForm: React.FC<MenuFormProps> = ({
       return;
     }
 
-    // 상위 컴포넌트의 handleSubmit 호출 (Alert 다이얼로그 처리)
-    onSubmit(formData);
+    try {
+      // 메뉴 정보를 저장
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("메뉴 저장 실패:", error);
+      throw error; // 상위 컴포넌트에서 에러 처리할 수 있도록 re-throw
+    }
   };
+
+  // 렌더링 조건 판별
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Photo Upload */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">메뉴 사진</Label>
-        <PhotoUpload
-          storeId={storeId}
-          foodItemId={foodId || 0}
-          onUploadSuccess={handlePhotoUploadSuccess}
-          onUploadError={handlePhotoUploadError}
-        />
-      </div>
+      {/* Photo Section */}
+      <MenuPhotoSection
+        mode={mode}
+        storeId={storeId}
+        foodId={foodId}
+        photos={photos}
+        hasExistingPhotos={hasExistingPhotos}
+        fromNativeCamera={fromNativeCamera}
+        nativePhotoPath={nativePhotoPath}
+        onFileSelect={handleFileSelect}
+        onPhotoUploadError={handlePhotoUploadError}
+        onPhotoDelete={handlePhotoDelete}
+        onFeaturedChange={handleFeaturedChange}
+        onTakeNewPhoto={handleTakeNewPhoto}
+      />
 
-      {/* Photo Gallery (edit 모드에서만) */}
-      {mode === "edit" && photos.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">등록된 사진들</Label>
-          <PhotoGallery
-            photos={photos}
-            onPhotoDelete={handlePhotoDelete}
-            onFeaturedChange={handleFeaturedChange}
-            showDeleteButton={true}
-            showFeaturedButton={true}
-          />
-        </div>
-      )}
-
-      {/* Save Photo Platform */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">사진 저장하기</Label>
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <button 
-            type="button"
-            onClick={() => handlePlatformPhotoSave("배달의 민족")}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            배달의 민족
-          </button>
-          <button 
-            type="button"
-            onClick={() => handlePlatformPhotoSave("쿠팡이츠")}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            쿠팡이츠
-          </button>
-          <button 
-            type="button"
-            onClick={() => handlePlatformPhotoSave("요기요")}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            요기요
-          </button>
-          <button 
-            type="button"
-            onClick={() => handlePlatformPhotoSave("네이버플레이스")}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            네이버플레이스
-          </button>
-        </div>
-      </div>
+      {/* 단순화된 폼: 이름, 설명, 가격만 */}
 
       {/* Food Name */}
       <div className="space-y-2">
@@ -272,46 +232,6 @@ const MenuForm: React.FC<MenuFormProps> = ({
           {isPending ? pendingText : submitText}
         </Button>
       </div>
-
-
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>사진 저장 확인</DialogTitle>
-            <DialogDescription>
-              {selectedPlatform}에 사진을 저장하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancelSave}>
-              취소
-            </Button>
-            <Button onClick={handleConfirmSave}>
-              저장
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Success Dialog */}
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>저장 완료</DialogTitle>
-            <DialogDescription>
-              {selectedPlatform}에 사진이 저장되었습니다.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={handleSuccessDialogClose}>
-              확인
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
     </form>
   );
 };

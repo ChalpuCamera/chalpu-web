@@ -7,15 +7,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { AvatarImage } from "@/components/ui/avatar";
 import { AvatarFallback } from "@/components/ui/avatar";
 import { useNativeBridge } from "@/utils/nativeBridge";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useAuth } from "@/hooks/useAuth";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useMyStores } from "@/hooks/useStore";
-import {
-  useActivities,
-  useCreateActivity,
-  useActivityCache,
-} from "@/hooks/useActivity";
+import { useActivities, useCreateActivity } from "@/hooks/useActivity";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBell,
@@ -35,7 +29,6 @@ export default function Home() {
   const { bridge, isAvailable } = useNativeBridge();
   const { data: activities, isLoading: activitiesLoading } = useActivities(5);
   const createActivity = useCreateActivity();
-  const { getCacheInfo, forceRefresh } = useActivityCache();
   const router = useRouter();
 
   // 오늘의 팁 데이터 가져오기
@@ -44,10 +37,6 @@ export default function Home() {
     isLoading: tipLoading,
     error: tipError,
   } = useTodayTip();
-  // zustand 스토어 직접 사용
-  const { tokens, isLoading: authLoading, isLoggedIn } = useAuthStore();
-  const { logout } = useAuth(); // 로그아웃 함수만 훅에서 가져오기
-
   // 사용자 정보 가져오기
   const {
     data: userInfo,
@@ -73,7 +62,7 @@ export default function Home() {
     setIsStoreDropdownOpen(false);
   };
 
-  const handlePhotoGuide = async () => {
+  const handlePhotoGuide = () => {
     // 로그인 성공 메시지를 네이티브 앱에 전달
     if (isAvailable && userInfo) {
       bridge.postMessage("LOGIN_SUCCESS", {
@@ -83,10 +72,8 @@ export default function Home() {
       });
     }
     if (isAvailable) {
-      try {
-        console.log("카메라 촬영 시도");
-        const result = await bridge.openCameraWithCallback("guide_photo");
-
+      console.log("카메라 촬영 시도");
+      bridge.openCameraWithCallback((result) => {
         if (result.success) {
           console.log("카메라 촬영 성공:", result.filePath);
           // 촬영된 이미지로 가이드 처리 로직 추가
@@ -99,15 +86,24 @@ export default function Home() {
         } else {
           console.error("카메라 촬영 실패:", result.error);
         }
-      } catch (error) {
-        console.error("카메라 호출 실패:", error);
-      }
+      }, "guide_photo");
     } else {
       console.log("네이티브 앱에서만 사용 가능합니다.");
     }
   };
 
   const handleMenuManagement = () => {
+    // 활동 로그 생성
+    createActivity.mutate({
+      type: "menu",
+      title: "메뉴 관리하기",
+      description:
+        hasStores && stores[selectedStore]
+          ? `${stores[selectedStore].storeName} 매장의 메뉴를 관리했습니다`
+          : "메뉴 관리 페이지로 이동했습니다",
+    });
+
+    // 페이지 이동
     if (hasStores && stores[selectedStore]) {
       router.push(`/menu?storeId=${stores[selectedStore].storeId}`);
     } else {
@@ -121,325 +117,18 @@ export default function Home() {
   // };
 
   const handleMyPage = () => {
-    console.log("마이페이지로 이동 - 추후 구현");
+    // 활동 로그 생성
+    createActivity.mutate({
+      type: "content",
+      title: "마이페이지 접속",
+      description: "개인 정보 및 설정을 확인했습니다",
+    });
+
     router.push("/mypage");
   };
 
-  // Alert 기능 테스트 핸들러
-  const handleTestAlert = () => {
-    if (isAvailable) {
-      bridge.showAlert("이것은 네이티브 Alert 테스트입니다!", "알림");
-    } else {
-      alert("웹 브라우저에서는 일반 alert이 표시됩니다.");
-    }
-  };
-
-  // 네이티브 브릿지 상태 확인
-  const handleTestBridge = () => {
-    console.log("=== 네이티브 브릿지 테스트 ===");
-    console.log("isAvailable:", isAvailable);
-    console.log("window.Android:", !!window.Android);
-    console.log("window.webkit:", !!window.webkit);
-    console.log("User Agent:", navigator.userAgent);
-
-    if (window.Android) {
-      console.log(
-        "Android.postMessage:",
-        typeof (window.Android as Record<string, unknown>).postMessage
-      );
-    }
-    if (window.webkit?.messageHandlers?.chalpu) {
-      console.log(
-        "iOS chalpu handler:",
-        typeof window.webkit.messageHandlers.chalpu.postMessage
-      );
-    }
-
-    // 단순한 테스트 메시지 전송
-    bridge.postMessage("TEST_MESSAGE", {
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-    });
-  };
-
-  // 앱에서 웹으로 응답 테스트
-  const handleTestResponse = () => {
-    console.log("앱 응답 테스트 - receiveNativeMessage 함수 확인");
-
-    // receiveNativeMessage 함수가 있는지 확인
-    if (typeof window.receiveNativeMessage === "function") {
-      console.log("✅ receiveNativeMessage 함수 존재");
-
-      // 직접 호출해서 테스트
-      window.receiveNativeMessage("test_callback", {
-        success: true,
-        message: "테스트 응답",
-      });
-    } else {
-      console.log("❌ receiveNativeMessage 함수가 없습니다");
-    }
-
-    // Android 객체 상세 확인
-    if (window.Android) {
-      console.log(
-        "Android 객체 메서드들:",
-        Object.getOwnPropertyNames(window.Android)
-      );
-    }
-  };
-
-  // Android 객체 상세 진단
-  const handleDiagnose = () => {
-    console.log("=== 🔍 Android 웹뷰 진단 ===");
-    console.log("window.NativeBridge 존재:", !!window.NativeBridge);
-    console.log("window.Android 존재:", !!window.Android);
-
-    if (window.NativeBridge) {
-      console.log("✅ NativeBridge 발견!");
-      console.log(
-        "postMessage 메서드:",
-        typeof window.NativeBridge.postMessage
-      );
-    }
-
-    if (window.Android) {
-      console.log("✅ Android 발견!");
-      console.log("메서드들:", Object.getOwnPropertyNames(window.Android));
-    }
-
-    console.log("User Agent:", navigator.userAgent);
-  };
-
-  // 기존 showToast 메서드로 테스트
-  const handleTestToast = () => {
-    console.log("기존 showToast 메서드로 테스트");
-
-    if (window.Android) {
-      const androidObj = window.Android as Record<string, unknown>;
-      if (typeof androidObj.showToast === "function") {
-        try {
-          (androidObj.showToast as (message: string) => void)(
-            "웹에서 호출한 토스트 메시지!"
-          );
-          console.log("✅ showToast 호출 성공!");
-        } catch (error) {
-          console.log("❌ showToast 호출 실패:", error);
-        }
-      } else {
-        console.log("❌ showToast 메서드를 찾을 수 없음");
-      }
-    }
-  };
-
-  // 기존 메서드들로 통신 테스트
-  const handleTestExistingMethods = () => {
-    console.log("=== 기존 Android 메서드들 테스트 ===");
-
-    if (!window.Android) {
-      console.log("❌ Android 객체가 없습니다");
-      return;
-    }
-
-    const android = window.Android as Record<string, unknown>;
-
-    // showToast 테스트
-    if (typeof android.showToast === "function") {
-      try {
-        (android.showToast as (message: string) => void)(
-          "웹에서 보낸 토스트 메시지입니다!"
-        );
-        console.log("✅ showToast 성공");
-      } catch (error) {
-        console.log("❌ showToast 실패:", error);
-      }
-    }
-
-    // getDeviceInfo 테스트
-    if (typeof android.getDeviceInfo === "function") {
-      try {
-        const deviceInfo = (android.getDeviceInfo as () => unknown)();
-        console.log("✅ getDeviceInfo 성공:", deviceInfo);
-      } catch (error) {
-        console.log("❌ getDeviceInfo 실패:", error);
-      }
-    }
-
-    // getAuthTokens 테스트
-    if (typeof android.getAuthTokens === "function") {
-      try {
-        const tokens = (android.getAuthTokens as () => unknown)();
-        console.log("✅ getAuthTokens 성공:", tokens);
-      } catch (error) {
-        console.log("❌ getAuthTokens 실패:", error);
-      }
-    }
-  };
-
-  // 카메라 테스트 (응답 없는 버전)
-  const handleTestCameraSimple = () => {
-    console.log("단순 카메라 테스트 (응답 없음)");
-    bridge.openCamera("test_food");
-  };
-
-  // 갤러리 테스트
-  const handleTestGallery = async () => {
-    console.log("갤러리 테스트 시작");
-    if (isAvailable) {
-      try {
-        const result = await bridge.openGalleryWithCallback();
-        console.log("갤러리 결과:", result);
-        if (result.success) {
-          bridge.showAlert(
-            `갤러리에서 파일을 선택했습니다: ${result.path}`,
-            "성공"
-          );
-        }
-      } catch (error) {
-        console.error("갤러리 테스트 실패:", error);
-        bridge.showAlert("갤러리 테스트 실패", "오류");
-      }
-    }
-  };
-
-  // 개발 환경에서 캐시 정보 표시
-  const cacheInfo = getCacheInfo();
-  const tokenExpiryTime = tokens?.expiresIn;
-  const showDevInfo = process.env.NODE_ENV === "development";
-
   return (
     <div className="bg-white">
-      {/* Development Cache Info */}
-      {showDevInfo && (
-        <div className="bg-gray-100 p-2 text-sm text-gray-600 border-b">
-          <div className="max-w-[400px] mx-auto">
-            <div className="flex justify-between items-center mb-1">
-              <span>
-                캐시: {cacheInfo.count}개 |
-                {cacheInfo.isValid ? " 유효" : " 무효"} |
-                {cacheInfo.lastUpdate
-                  ? ` ${cacheInfo.lastUpdate.toLocaleTimeString()}`
-                  : " 없음"}
-              </span>
-              <button
-                onClick={forceRefresh}
-                className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-              >
-                새로고침
-              </button>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>
-                인증:{" "}
-                {authLoading
-                  ? "로딩..."
-                  : isLoggedIn
-                  ? "로그인됨"
-                  : "로그아웃됨"}{" "}
-                | 토큰: {tokens ? "있음" : "없음"} | 만료:{" "}
-                {tokenExpiryTime
-                  ? new Date(tokenExpiryTime).toLocaleTimeString()
-                  : "없음"}
-              </span>
-              {isLoggedIn && (
-                <button
-                  onClick={logout}
-                  className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  로그아웃
-                </button>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <span>
-                사용자:{" "}
-                {userLoading
-                  ? "로딩..."
-                  : isUserError
-                  ? "에러"
-                  : userInfo?.name || "없음"}{" "}
-                | 제공자: {userInfo?.provider || "없음"} | 이메일:{" "}
-                {userInfo?.email || "없음"}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>네이티브 기능 테스트:</span>
-              <div className="flex gap-1">
-                <button
-                  onClick={handleTestBridge}
-                  className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  브릿지
-                </button>
-                <button
-                  onClick={handleTestAlert}
-                  className="bg-purple-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  Alert
-                </button>
-                <button
-                  onClick={handleTestCameraSimple}
-                  className="bg-green-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  카메라
-                </button>
-                <button
-                  onClick={handleTestGallery}
-                  className="bg-orange-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  갤러리
-                </button>
-                <button
-                  onClick={handleTestResponse}
-                  className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  응답
-                </button>
-                <button
-                  onClick={handleDiagnose}
-                  className="bg-yellow-500 text-white px-2 py-1 rounded text-sm"
-                >
-                  진단
-                </button>
-                <button
-                  onClick={handleTestToast}
-                  className="bg-purple-700 text-white px-2 py-1 rounded text-sm"
-                >
-                  showToast
-                </button>
-                <button
-                  onClick={handleTestExistingMethods}
-                  className="bg-blue-700 text-white px-2 py-1 rounded text-sm"
-                >
-                  기존 메서드 테스트
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>
-                매장: {storesLoading ? "로딩..." : `${stores.length}개`} | 선택:{" "}
-                {hasStores
-                  ? stores[selectedStore]?.storeName || "없음"
-                  : "없음"}{" "}
-                | 총: {storesData?.totalElements || 0}개
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>
-                브릿지 상태: {isAvailable ? "✅ 연결됨" : "❌ 미연결"} |
-                NativeBridge:{" "}
-                {typeof window !== "undefined" && window.NativeBridge
-                  ? "✅"
-                  : "❌"}{" "}
-                | iOS:{" "}
-                {typeof window !== "undefined" &&
-                window.webkit?.messageHandlers?.chalpu
-                  ? "✅"
-                  : "❌"}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Navigation Bar */}
       <div className="w-full bg-white border-b mb-6">
         <div className="px-4 py-2 flex items-center justify-between border-b">
@@ -587,8 +276,12 @@ export default function Home() {
         {/* Today's Tip Section */}
         <div className="mb-12">
           <Card className="p-4 bg-orange-50">
-            <div className="flex gap-4">
-              <div className="w-[80px] h-[80px] bg-orange-200 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="flex items-center gap-2 mb-2">
+              <FontAwesomeIcon icon={faLightbulb} className="text-orange-500" />
+              <h3 className="font-medium">오늘의 팁</h3>
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <div className="w-[80px] h-[80px] bg-orange-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                 {tipLoading ? (
                   <div className="w-full h-full bg-orange-300 animate-pulse"></div>
                 ) : todayTip && !tipError ? (
@@ -597,7 +290,7 @@ export default function Home() {
                     alt={todayTip.title}
                     width={80}
                     height={80}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center"
                     onError={(e) => {
                       // 이미지 로드 실패 시 기본 아이콘으로 대체
                       const target = e.target as HTMLImageElement;
@@ -613,13 +306,6 @@ export default function Home() {
                 )}
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <FontAwesomeIcon
-                    icon={faLightbulb}
-                    className="text-orange-500"
-                  />
-                  <h3 className="font-medium">오늘의 팁</h3>
-                </div>
                 {tipLoading ? (
                   <div className="space-y-2">
                     <div className="h-4 bg-orange-300 rounded w-32 animate-pulse"></div>
@@ -628,7 +314,7 @@ export default function Home() {
                   </div>
                 ) : todayTip && !tipError ? (
                   <>
-                    <h4 className="font-medium mb-1">{todayTip.title}</h4>
+                    <h4 className="font-bold mb-1">{todayTip.title}</h4>
                     <p className="text-sm text-gray-600">{todayTip.text}</p>
                   </>
                 ) : (

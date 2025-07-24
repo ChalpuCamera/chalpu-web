@@ -25,7 +25,7 @@ apiClient.interceptors.request.use(
     }
 
     // 디버그 로깅
-    console.log('🔍 API Request:', {
+    console.log("🔍 API Request:", {
       baseURL: config.baseURL,
       url: config.url,
       fullURL: `${config.baseURL}${config.url}`,
@@ -74,7 +74,7 @@ apiClient.interceptors.response.use(
 // 기본 API 요청 함수
 export async function apiRequest<T>(
   endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   data?: unknown
 ): Promise<ApiResponse<T>> {
   const response = await apiClient.request({
