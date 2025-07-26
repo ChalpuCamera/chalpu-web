@@ -58,5 +58,5 @@ export const useTodayTip = () => {
 
 // CDN 이미지 URL 생성 함수
 export const getTipImageUrl = (tipId: string): string => {
-  return `https://cdn.chalpu.com/tip/${tipId}.webp`;
+  return `https://cdn.chalpu.com/tip/${tipId}.webp?q=70`;
 };
