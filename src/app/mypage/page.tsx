@@ -11,12 +11,10 @@ import {
   faEdit,
   faChevronRight,
   faMapMarkerAlt,
-  faSignOutAlt,
   faTrash,
   faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import { useMyStores, useDeleteStore } from "@/hooks/useStore";
-import { useAuth } from "@/hooks/useAuth";
 import StoreEditDialog from "@/components/StoreEditDialog";
 import { UpdateStoreRequest } from "@/lib/api/types";
 import NavBar from "@/components/ui/navbar";
@@ -25,9 +23,6 @@ import { useAlertDialog } from "@/components/ui/alert-dialog";
 const MyPage: React.FC = () => {
   const router = useRouter();
   const { showAlert, AlertDialogComponent } = useAlertDialog();
-
-  // 인증 상태 관리
-  const { logout } = useAuth();
 
   // 매장 관리 훅들
   const {
@@ -77,14 +72,6 @@ const MyPage: React.FC = () => {
       setSelectedStoreIndex(0);
     }
   }, [stores.length, selectedStoreIndex]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-    }
-  };
 
   const handleStoreEdit = (storeId: number) => {
     // 매장 수정 페이지로 이동

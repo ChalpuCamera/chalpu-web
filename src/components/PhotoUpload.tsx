@@ -468,23 +468,13 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         </div>
       ) : (
         <div className="relative">
-          {previewUrl.startsWith('blob:') ? (
-            // Blob URL인 경우 일반 img 태그 사용
-            <img
-              src={previewUrl}
-              alt="미리보기"
-              className="w-full h-48 object-cover rounded-lg"
-            />
-          ) : (
-            // 일반 URL인 경우 Next.js Image 컴포넌트 사용
-            <Image
-              src={previewUrl}
-              alt="미리보기"
-              width={400}
-              height={192}
-              className="w-full h-48 object-cover rounded-lg"
-            />
-          )}
+          <Image
+            src={previewUrl}
+            alt="미리보기"
+            width={400}
+            height={192}
+            className="w-full h-48 object-cover rounded-lg"
+          />
           <div className="absolute top-2 right-2 flex gap-2">
             <Button
               size="sm"
