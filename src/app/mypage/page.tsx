@@ -11,12 +11,10 @@ import {
   faEdit,
   faChevronRight,
   faMapMarkerAlt,
-  faSignOutAlt,
   faTrash,
   faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import { useMyStores, useDeleteStore } from "@/hooks/useStore";
-import { useAuth } from "@/hooks/useAuth";
 import StoreEditDialog from "@/components/StoreEditDialog";
 import { UpdateStoreRequest } from "@/lib/api/types";
 import NavBar from "@/components/ui/navbar";
@@ -25,9 +23,6 @@ import { useAlertDialog } from "@/components/ui/alert-dialog";
 const MyPage: React.FC = () => {
   const router = useRouter();
   const { showAlert, AlertDialogComponent } = useAlertDialog();
-
-  // 인증 상태 관리
-  const { logout } = useAuth();
 
   // 매장 관리 훅들
   const {
@@ -77,14 +72,6 @@ const MyPage: React.FC = () => {
       setSelectedStoreIndex(0);
     }
   }, [stores.length, selectedStoreIndex]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-    }
-  };
 
   const handleStoreEdit = (storeId: number) => {
     // 매장 수정 페이지로 이동
@@ -190,7 +177,7 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      <NavBar title="마이페이지" onBack={() => router.push("/")} />
+      <NavBar title="매장 관리" onBack={() => router.push("/")} />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         {/* Store Management Section */}
@@ -548,7 +535,7 @@ const MyPage: React.FC = () => {
         </div> */}
 
         {/* Logout Button */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <Button
             variant="outline"
             className="w-full py-3 rounded-lg border-red-200 text-red-600 hover:bg-red-50"
@@ -557,7 +544,7 @@ const MyPage: React.FC = () => {
             <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
             로그아웃
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* 매장 정보 수정 다이얼로그 */}

@@ -21,7 +21,7 @@ import {
   faShareAlt,
   faLightbulb,
 } from "@fortawesome/free-solid-svg-icons";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useTodayTip, getTipImageUrl } from "@/hooks/useTips";
 import Image from "next/image";
 
@@ -30,6 +30,7 @@ export default function Home() {
   const { data: activities, isLoading: activitiesLoading } = useActivities(5);
   const createActivity = useCreateActivity();
   const router = useRouter();
+  const pathname = usePathname();
 
   // 오늘의 팁 데이터 가져오기
   const {
@@ -73,7 +74,7 @@ export default function Home() {
     }
     if (isAvailable) {
       console.log("🎯 [handlePhotoGuide] 카메라 촬영 시도");
-      bridge.openCamera("guide_photo", (result) => {
+      bridge.openCamera(pathname, (result) => {
         console.log("🎯 [handlePhotoGuide] 콜백 함수 실행됨");
         console.log("🎯 [handlePhotoGuide] 결과:", result);
 
@@ -131,8 +132,8 @@ export default function Home() {
     // 활동 로그 생성
     createActivity.mutate({
       type: "content",
-      title: "마이페이지 접속",
-      description: "개인 정보 및 설정을 확인했습니다",
+      title: "매장 관리 접속",
+      description: "매장 관리 페이지로 이동했습니다",
     });
 
     router.push("/mypage");
@@ -225,7 +226,7 @@ export default function Home() {
             className="text-sm text-blue-600 flex items-center gap-1"
             onClick={handleMyPage}
           >
-            <span>마이페이지</span>
+            <span>매장 관리</span>
             <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
           </button>
         </div>

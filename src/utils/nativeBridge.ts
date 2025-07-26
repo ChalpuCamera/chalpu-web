@@ -134,15 +134,6 @@ class NativeBridge {
       console.log("📤 [postMessage] 메시지 생성:", message);
       this.sendMessage(message);
 
-      // 타임아웃 설정 (10초)
-      console.log("📤 [postMessage] 타임아웃 설정 (10초)");
-      setTimeout(() => {
-        if (this.pendingCallbacks.has(callbackId)) {
-          console.log("📤 [postMessage] 타임아웃 발생:", callbackId);
-          this.pendingCallbacks.delete(callbackId);
-          callbackFn({ success: false, error: "Native call timeout" });
-        }
-      }, 10000);
     } else if (callback) {
       // 세 번째 파라미터가 콜백인 경우
       console.log("📤 [postMessage] 세 번째 파라미터가 콜백 함수");
@@ -169,15 +160,6 @@ class NativeBridge {
       console.log("📤 [postMessage] 메시지 생성:", message);
       this.sendMessage(message);
 
-      // 타임아웃 설정 (10초)
-      console.log("📤 [postMessage] 타임아웃 설정 (10초)");
-      setTimeout(() => {
-        if (this.pendingCallbacks.has(callbackId)) {
-          console.log("📤 [postMessage] 타임아웃 발생:", callbackId);
-          this.pendingCallbacks.delete(callbackId);
-          callback({ success: false, error: "Native call timeout" });
-        }
-      }, 10000);
     } else {
       // 콜백이 없는 경우
       console.log("📤 [postMessage] 콜백 함수 없음");
@@ -366,41 +348,29 @@ class NativeBridge {
 
   /**
    * 카메라 열기
-   * @param foodNameOrCallback 음식명 또는 콜백 함수 (optional)
+   * @param pathName 경로명 (필수)
    * @param callback 콜백 함수 (optional)
    */
   openCamera(
-    foodNameOrCallback?: string | ((result: CameraResult) => void),
+    pathName: string,
     callback?: (result: CameraResult) => void
   ): void {
     console.log("📸 [openCamera] 함수 호출됨");
     console.log("📸 [openCamera] 파라미터:", {
-      foodNameOrCallback,
+      pathName,
       callback: !!callback,
     });
 
-    // 첫 번째 파라미터가 함수인 경우 콜백으로 처리
-    if (typeof foodNameOrCallback === "function") {
-      console.log("📸 [openCamera] 첫 번째 파라미터가 콜백 함수");
+    if (callback) {
+      console.log("📸 [openCamera] 콜백 함수와 함께 호출");
       this.postMessage(
         "openCamera",
-        foodNameOrCallback as (result: unknown) => void
-      );
-    } else if (callback) {
-      // 두 번째 파라미터가 콜백인 경우
-      console.log("📸 [openCamera] 두 번째 파라미터가 콜백 함수");
-      this.postMessage(
-        "openCamera",
-        foodNameOrCallback ? { foodName: foodNameOrCallback } : undefined,
+        { pathName },
         callback as (result: unknown) => void
       );
     } else {
-      // 콜백이 없는 경우
       console.log("📸 [openCamera] 콜백 함수 없음");
-      this.postMessage(
-        "openCamera",
-        foodNameOrCallback ? { foodName: foodNameOrCallback } : undefined
-      );
+      this.postMessage("openCamera", { pathName });
     }
   }
 

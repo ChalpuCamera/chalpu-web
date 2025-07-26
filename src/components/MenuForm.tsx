@@ -9,7 +9,7 @@ import { CreateFoodRequest, UpdateFoodRequest, Food } from "@/lib/api/types";
 import MenuPhotoSection from "@/components/MenuPhotoSection";
 import { usePhotosByFood } from "@/hooks/usePhoto";
 import { useNativeBridge } from "@/utils/nativeBridge";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { uploadPhoto } from "@/utils/photoUpload";
 
 interface MenuFormProps {
@@ -37,6 +37,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
 }) => {
   const searchParams = useSearchParams();
   const { bridge, isAvailable } = useNativeBridge();
+  const pathname = usePathname();
 
   // 네이티브에서 전달받은 사진 경로 확인
   const nativePhotoPath = searchParams.get("photoPath");
@@ -107,7 +108,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
 
   const handleTakeNewPhoto = () => {
     if (isAvailable) {
-      bridge.openCamera((result) => {
+      bridge.openCamera(pathname, (result) => {
         if (result.success && result.tempFileURL) {
           // 새로 찍은 사진 처리
           console.log("새로 찍은 사진:", result.tempFileURL);

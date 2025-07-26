@@ -214,7 +214,7 @@ export function LoginGuard({ children }: LoginGuardProps) {
   const handleTestCameraSimple = () => {
     console.log("🎯 [handleTestCameraSimple] 카메라 테스트 시작");
     if (isAvailable) {
-      bridge.openCamera("test_food", (result) => {
+      bridge.openCamera(pathname, (result) => {
         console.log("🎯 [handleTestCameraSimple] 콜백 함수 실행됨");
         console.log("🎯 [handleTestCameraSimple] 결과:", result);
 
