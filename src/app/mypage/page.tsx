@@ -190,7 +190,7 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      <NavBar title="마이페이지" onBack={() => router.push("/")} />
+      <NavBar title="매장 관리" onBack={() => router.push("/")} />
       {/* Main Content */}
       <div className="space-y-12 px-4">
         {/* Store Management Section */}
@@ -548,7 +548,7 @@ const MyPage: React.FC = () => {
         </div> */}
 
         {/* Logout Button */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <Button
             variant="outline"
             className="w-full py-3 rounded-lg border-red-200 text-red-600 hover:bg-red-50"
@@ -557,7 +557,7 @@ const MyPage: React.FC = () => {
             <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
             로그아웃
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* 매장 정보 수정 다이얼로그 */}
