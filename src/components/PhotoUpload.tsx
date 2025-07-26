@@ -14,6 +14,7 @@ import {
 import { uploadPhoto } from "@/utils/photoUpload";
 import { useNativeBridge } from "@/utils/nativeBridge";
 import { usePhotosByFood } from "@/hooks/usePhoto";
+import { usePathname } from "next/navigation";
 
 interface PhotoUploadProps {
   storeId: number;
@@ -49,6 +50,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { bridge, isAvailable } = useNativeBridge();
+  const pathname = usePathname();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,41 +99,53 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
       try {
         // previewOnly가 true이면 업로드하지 않고 미리보기만
         if (previewOnly) {
-          // 파일을 복사해서 안정성 확보
-          const fileCopy = new File([file], file.name, { type: file.type });
-
-          // Blob URL 생성 시 오류 방지를 위해 try-catch 추가
+          // ArrayBuffer로 안전한 복사본 생성 시도
+          let fileToUse: File;
           try {
-            currentPreviewUrl = URL.createObjectURL(fileCopy);
-            setPreviewUrl(currentPreviewUrl);
-          } catch (blobError) {
-            console.error("Blob URL 생성 실패:", blobError);
-            // Blob URL 생성 실패해도 파일은 전달
-            setPreviewUrl(null);
+            const arrayBuffer = await file.arrayBuffer();
+            fileToUse = new File([arrayBuffer], file.name, { type: file.type });
+          } catch (readError) {
+            console.warn("ArrayBuffer 읽기 실패, 원본 파일 사용:", readError);
+            fileToUse = file;
           }
-
-          onFileSelect?.(fileCopy);
+          
+          currentPreviewUrl = URL.createObjectURL(fileToUse);
+          setPreviewUrl(currentPreviewUrl);
+          onFileSelect?.(fileToUse);
           return;
         }
 
         // previewOnly가 false인 경우에만 실제 업로드 수행
-        const fileCopy = new File([file], file.name, { type: file.type });
-        currentPreviewUrl = URL.createObjectURL(fileCopy);
-        setPreviewUrl(currentPreviewUrl);
-
         setIsUploading(true);
 
-        // 파일 복사본으로 업로드
-        const result = await uploadPhoto(fileCopy, storeId, foodItemId);
+        // ArrayBuffer로 안전한 복사본 생성 시도
+        let fileToUpload: File;
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          fileToUpload = new File([arrayBuffer], file.name, { type: file.type });
+        } catch (readError) {
+          console.warn("ArrayBuffer 읽기 실패, 원본 파일 사용:", readError);
+          fileToUpload = file;
+        }
+        
+        currentPreviewUrl = URL.createObjectURL(fileToUpload);
+        setPreviewUrl(currentPreviewUrl);
+
+        // 업로드
+        const result = await uploadPhoto(fileToUpload, storeId, foodItemId);
 
         // 첫 번째 사진인 경우 대표 사진으로 자동 설정은 API에서 처리됨
         onUploadSuccess?.(result.photoId, result.imageUrl);
 
-        // 업로드 성공 후 미리보기 URL 정리
-        if (currentPreviewUrl) {
-          URL.revokeObjectURL(currentPreviewUrl);
-        }
-        setPreviewUrl(null);
+        // 업로드 성공 후에만 Blob URL 정리하고 서버 URL로 변경
+        setPreviewUrl(result.imageUrl);
+        
+        // 서버 이미지로 변경 후 Blob URL 정리
+        setTimeout(() => {
+          if (currentPreviewUrl) {
+            URL.revokeObjectURL(currentPreviewUrl);
+          }
+        }, 100);
       } catch (error) {
         console.error("사진 업로드 실패:", error);
         onUploadError?.(
@@ -170,7 +184,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   const handleRemove = () => {
-    if (previewUrl) {
+    if (previewUrl && previewUrl.startsWith('blob:')) {
       try {
         URL.revokeObjectURL(previewUrl);
       } catch (error) {
@@ -207,7 +221,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     }
 
     if (isAvailable) {
-      bridge.openCamera("uploaded_photo", (result) => {
+      bridge.openCamera(pathname, (result) => {
         console.log("카메라 콜백 결과:", result);
 
         if (result.success) {
@@ -215,20 +229,37 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
           if (result.tempFileURL) {
             console.log("카메라 촬영 성공:", result.tempFileURL);
 
+            // CDN URL을 앞에 붙여서 완전한 이미지 URL 생성
+            const fullImageUrl = `https://cdn.chalpu.com/${result.tempFileURL}`;
+            console.log("완전한 이미지 URL:", fullImageUrl);
+
             if (previewOnly) {
               // previewOnly 모드일 때는 미리보기만 설정
-              setPreviewUrl(result.tempFileURL); // 네이티브에서 받은 경로를 미리보기로 사용
-              // TODO: 실제 파일 객체를 생성해서 onFileSelect에 전달
-              onFileSelect?.(
-                new File([], "camera-photo.jpg", { type: "image/jpeg" })
-              );
+              setPreviewUrl(fullImageUrl);
+              
+              // CDN URL에서 실제 이미지 데이터를 가져와서 File 객체 생성
+              fetch(fullImageUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                  const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+                  onFileSelect?.(file);
+                })
+                .catch(error => {
+                  console.error("이미지 로드 실패:", error);
+                  onUploadError?.("이미지를 불러오는데 실패했습니다.");
+                });
             } else {
-              // TODO: 네이티브에서 실제 파일 데이터를 받아서 처리
-              // 현재는 임시로 빈 파일 객체 생성
-              const file = new File([], "camera-photo.jpg", {
-                type: "image/jpeg",
-              });
-              handleFileSelect(file);
+              // CDN URL에서 실제 이미지 데이터를 가져와서 업로드 처리
+              fetch(fullImageUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                  const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+                  handleFileSelect(file);
+                })
+                .catch(error => {
+                  console.error("이미지 로드 실패:", error);
+                  onUploadError?.("이미지를 불러오는데 실패했습니다.");
+                });
             }
           } else {
             console.log("카메라 요청 수락됨 (실제 촬영 결과 대기 중)");
@@ -437,13 +468,23 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         </div>
       ) : (
         <div className="relative">
-          <Image
-            src={previewUrl}
-            alt="미리보기"
-            width={400}
-            height={192}
-            className="w-full h-48 object-cover rounded-lg"
-          />
+          {previewUrl.startsWith('blob:') ? (
+            // Blob URL인 경우 일반 img 태그 사용
+            <img
+              src={previewUrl}
+              alt="미리보기"
+              className="w-full h-48 object-cover rounded-lg"
+            />
+          ) : (
+            // 일반 URL인 경우 Next.js Image 컴포넌트 사용
+            <Image
+              src={previewUrl}
+              alt="미리보기"
+              width={400}
+              height={192}
+              className="w-full h-48 object-cover rounded-lg"
+            />
+          )}
           <div className="absolute top-2 right-2 flex gap-2">
             <Button
               size="sm"
