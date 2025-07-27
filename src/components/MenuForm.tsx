@@ -23,6 +23,7 @@ interface MenuFormProps {
   isPending: boolean;
   submitText: string;
   pendingText: string;
+  initialImageUrl?: string; // 홈화면에서 촬영한 이미지 URL
 }
 
 const MenuForm: React.FC<MenuFormProps> = ({
@@ -34,6 +35,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
   isPending,
   submitText,
   pendingText,
+  initialImageUrl,
 }) => {
   const searchParams = useSearchParams();
   const { bridge, isAvailable } = useNativeBridge();
@@ -53,7 +55,8 @@ const MenuForm: React.FC<MenuFormProps> = ({
     isActive: true,
   });
 
-  // 선택된 이미지 파일들 (미리보기용)
+  // 현재 표시할 이미지 URL (홈화면에서 촬영하거나 새로 촬영한 이미지)
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
 
   // 음식별 사진 목록 조회 (edit 모드에서만)
   const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
@@ -84,6 +87,24 @@ const MenuForm: React.FC<MenuFormProps> = ({
     }
   }, [fromNativeCamera, nativePhotoPath]);
 
+  // 홈화면에서 촬영한 이미지 처리
+  useEffect(() => {
+    if (initialImageUrl) {
+      console.log("홈화면에서 촬영된 이미지:", initialImageUrl);
+      setCurrentImageUrl(initialImageUrl);
+      // 이미지 URL을 파일로 변환하여 처리
+      fetch(initialImageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          const file = new File([blob], "home-camera-photo.jpg", { type: "image/jpeg" });
+          handleFileSelect(file);
+        })
+        .catch(error => {
+          console.error("홈화면 이미지 로드 실패:", error);
+        });
+    }
+  }, [initialImageUrl]);
+
   const handlePhotoUploadError = (error: string) => {
     alert(`사진 업로드 실패: ${error}`);
   };
@@ -112,6 +133,22 @@ const MenuForm: React.FC<MenuFormProps> = ({
         if (result.success && result.tempFileURL) {
           // 새로 찍은 사진 처리
           console.log("새로 찍은 사진:", result.tempFileURL);
+          const fullImageUrl = `https://cdn.chalpu.com/${result.tempFileURL}`;
+          
+          // 현재 표시할 이미지 URL 업데이트
+          setCurrentImageUrl(fullImageUrl);
+          
+          // 새로 촬영한 이미지를 파일로 변환하여 처리
+          fetch(fullImageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+              const file = new File([blob], "new-camera-photo.jpg", { type: "image/jpeg" });
+              handleFileSelect(file);
+            })
+            .catch(error => {
+              console.error("새로 촬영한 이미지 로드 실패:", error);
+              alert("이미지를 불러오는데 실패했습니다.");
+            });
         } else {
           console.error("카메라 호출 실패:", result.error);
           alert("카메라를 사용할 수 없습니다.");
@@ -201,6 +238,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
         onPhotoDelete={handlePhotoDelete}
         onFeaturedChange={handleFeaturedChange}
         onTakeNewPhoto={handleTakeNewPhoto}
+        initialImageUrl={currentImageUrl || initialImageUrl}
       />
 
       {/* 단순화된 폼: 이름, 설명, 가격만 */}

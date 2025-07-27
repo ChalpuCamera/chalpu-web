@@ -11,7 +11,9 @@ import { useAlertDialog } from "@/components/ui/alert-dialog";
 const AddMenuPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // URL 파라미터에서 storeId 추출 (홈화면에서 전달받거나 기존 방식)
   const storeId = parseInt(searchParams.get("storeId") || "0");
+  const imageUrl = searchParams.get("imageUrl");
   const createFoodMutation = useCreateFood();
   const { showAlert, AlertDialogComponent } = useAlertDialog();
 
@@ -114,6 +116,7 @@ const AddMenuPage: React.FC = () => {
           isPending={createFoodMutation.isPending}
           submitText="등록"
           pendingText="등록 중..."
+          initialImageUrl={imageUrl ? `https://cdn.chalpu.com/${imageUrl}` : undefined}
         />
         {AlertDialogComponent}
       </div>
