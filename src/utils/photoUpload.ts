@@ -64,6 +64,12 @@ export const uploadPhoto = async (
       imageUrl: registerResponse.result.imageUrl,
     };
     console.log("업로드 완료:", result);
+
+    // 업로드된 사진을 대표 사진으로 설정
+    if (foodItemId !== 0) {
+      await photoApi.setFeaturedPhoto(result.photoId, foodItemId);
+    }
+
     return result;
   } catch (error) {
     console.error("사진 업로드 실패:", error);
