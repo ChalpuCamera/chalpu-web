@@ -21,6 +21,7 @@ interface MenuPhotoSectionProps {
   onPhotoDelete: () => void;
   onFeaturedChange: () => void;
   onTakeNewPhoto: () => void;
+  initialImageUrl?: string;
 }
 
 const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
@@ -36,6 +37,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
   onPhotoDelete,
   onFeaturedChange,
   onTakeNewPhoto,
+  initialImageUrl,
 }) => {
   if (mode === "create") {
     // 1. 사진 없이 생성하는 경우 & 2. 네이티브에서 사진촬영 후 생성하는 경우
@@ -43,12 +45,12 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
       <div className="space-y-4">
         <Label className="text-sm font-medium">메뉴 사진 (선택사항)</Label>
 
-        {fromNativeCamera && nativePhotoPath ? (
-          // 네이티브에서 촬영된 사진이 있는 경우
+        {(fromNativeCamera && nativePhotoPath) || initialImageUrl ? (
+          // 네이티브에서 촬영된 사진이나 홈화면에서 촬영된 사진이 있는 경우
           <div className="space-y-4">
             <div className="relative">
               <Image
-                src={nativePhotoPath}
+                src={nativePhotoPath || initialImageUrl || ""}
                 alt="촬영된 사진 미리보기"
                 width={400}
                 height={192}

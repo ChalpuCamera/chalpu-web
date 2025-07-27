@@ -11,6 +11,7 @@ import { useUserInfo } from "@/hooks/useUserInfo";
 import { useMyStores } from "@/hooks/useStore";
 import { useActivities, useCreateActivity } from "@/hooks/useActivity";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useAlertDialog } from "@/components/ui/alert-dialog";
 import {
   faBell,
   faChevronDown,
@@ -31,6 +32,7 @@ export default function Home() {
   const createActivity = useCreateActivity();
   const router = useRouter();
   const pathname = usePathname();
+  const { showAlert, AlertDialogComponent } = useAlertDialog();
 
   // 오늘의 팁 데이터 가져오기
   const {
@@ -64,14 +66,21 @@ export default function Home() {
   };
 
   const handlePhotoGuide = () => {
-    // 로그인 성공 메시지를 네이티브 앱에 전달
-    if (isAvailable && userInfo) {
-      bridge.postMessage("LOGIN_SUCCESS", {
-        userId: userInfo.id,
-        userName: userInfo.name,
-        userEmail: userInfo.email,
+    // 가게가 없으면 먼저 가게 등록을 안내
+    if (!hasStores) {
+      showAlert({
+        title: "가게 등록 필요",
+        message: "먼저 가게를 등록해야 합니다. 가게 등록 페이지로 이동하시겠습니까?",
+        type: "info",
+        confirmText: "가게 등록하기",
+        cancelText: "취소",
+        onConfirm: () => {
+          router.push("/store/add");
+        }
       });
+      return;
     }
+    
     if (isAvailable) {
       console.log("🎯 [handlePhotoGuide] 카메라 촬영 시도");
       bridge.openCamera(pathname, (result) => {
@@ -82,10 +91,13 @@ export default function Home() {
           console.log("🎯 [handlePhotoGuide] 카메라 촬영 성공");
           if (result.tempFileURL) {
             console.log("🎯 [handlePhotoGuide] 파일 URL:", result.tempFileURL);
+            // 촬영한 이미지 URL과 선택된 가게 정보를 쿼리 파라미터로 전달하여 메뉴 등록 페이지로 이동
+            const encodedImageUrl = encodeURIComponent(result.tempFileURL);
+            const selectedStoreInfo = stores[selectedStore];
+            router.push(`/menu/add?imageUrl=${encodedImageUrl}&storeId=${selectedStoreInfo.storeId}`);
           } else {
             console.log("🎯 [handlePhotoGuide] 파일 URL 없음 (요청만 수락됨)");
           }
-          // 촬영된 이미지로 가이드 처리 로직 추가
           // 활동 로그 생성
           createActivity.mutate({
             type: "photo",
@@ -432,6 +444,7 @@ export default function Home() {
           )}
         </div>
       </div>
+      {AlertDialogComponent}
     </div>
   );
 }

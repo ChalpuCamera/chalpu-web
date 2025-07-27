@@ -230,7 +230,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
             console.log("카메라 촬영 성공:", result.tempFileURL);
 
             // CDN URL을 앞에 붙여서 완전한 이미지 URL 생성
-            const fullImageUrl = `https://cdn.chalpu.com/${result.tempFileURL}`;
+            const fullImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
             console.log("완전한 이미지 URL:", fullImageUrl);
 
             if (previewOnly) {
