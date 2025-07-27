@@ -116,7 +116,7 @@ const AddMenuPage: React.FC = () => {
           isPending={createFoodMutation.isPending}
           submitText="등록"
           pendingText="등록 중..."
-          initialImageUrl={imageUrl ? `https://cdn.chalpu.com/${imageUrl}` : undefined}
+          initialImageUrl={imageUrl ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}` : undefined}
         />
         {AlertDialogComponent}
       </div>

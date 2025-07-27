@@ -133,7 +133,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
         if (result.success && result.tempFileURL) {
           // 새로 찍은 사진 처리
           console.log("새로 찍은 사진:", result.tempFileURL);
-          const fullImageUrl = `https://cdn.chalpu.com/${result.tempFileURL}`;
+          const fullImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
           
           // 현재 표시할 이미지 URL 업데이트
           setCurrentImageUrl(fullImageUrl);

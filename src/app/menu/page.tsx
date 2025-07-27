@@ -360,7 +360,7 @@ const MenuPage: React.FC = () => {
               />
               {food.thumbnailUrl ? (
                 <Image
-                  src={food.thumbnailUrl}
+                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?q=70`}
                   alt={food.foodName}
                   width={80}
                   height={80}
