@@ -12,7 +12,6 @@ import {
   faChevronRight,
   faMapMarkerAlt,
   faTrash,
-  faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import { useMyStores, useDeleteStore } from "@/hooks/useStore";
 import StoreEditDialog from "@/components/StoreEditDialog";
@@ -278,13 +277,6 @@ const MyPage: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {store.address || "주소 미입력"}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{store.businessType || "업종 미입력"}</span>
-                      <span>{store.phone || "전화번호 미입력"}</span>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -390,37 +382,6 @@ const MyPage: React.FC = () => {
                       <p className="font-medium">업종</p>
                       <p className="text-sm text-gray-500">
                         {selectedStore.businessType || "업종 미입력"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FontAwesomeIcon
-                      icon={faEdit}
-                      className="text-gray-400 text-sm"
-                    />
-                    <FontAwesomeIcon
-                      icon={faChevronRight}
-                      className="text-gray-400 text-sm"
-                    />
-                  </div>
-                </div>
-                <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() =>
-                    handleFieldEdit("phone", "전화번호", "tel", "000-0000-0000")
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                      <FontAwesomeIcon
-                        icon={faPhone}
-                        className="text-teal-600"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium">전화번호</p>
-                      <p className="text-sm text-gray-500">
-                        {selectedStore.phone || "전화번호 미입력"}
                       </p>
                     </div>
                   </div>

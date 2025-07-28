@@ -225,7 +225,7 @@ const StoreForm: React.FC<StoreFormProps> = ({
       </div>
 
       {/* Phone Number */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label className="text-sm font-medium">전화번호</Label>
         <Input
           type="tel"
@@ -234,7 +234,7 @@ const StoreForm: React.FC<StoreFormProps> = ({
           onChange={(e) => handleInputChange(e, "phone")}
           className="w-full border-gray-200 focus:border-blue-500"
         />
-      </div>
+      </div> */}
 
       {/* Business Registration Number */}
       {/* <div className="space-y-2">
