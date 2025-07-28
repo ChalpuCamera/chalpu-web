@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -57,6 +57,11 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const pathname = usePathname();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // initialPreviewUrl이 변경될 때 previewUrl 업데이트
+  useEffect(() => {
+    setPreviewUrl(initialPreviewUrl || null);
+  }, [initialPreviewUrl]);
 
   // CDN에 저장된 사진 조회 (1개만) - edit 모드에서만 사용
   const { data: cdnPhotoData } = usePhotosByFood(foodItemId, {
