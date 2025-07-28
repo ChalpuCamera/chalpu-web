@@ -13,7 +13,6 @@ import { useActivities, useCreateActivity } from "@/hooks/useActivity";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAlertDialog } from "@/components/ui/alert-dialog";
 import {
-  faBell,
   faChevronDown,
   faChevronRight,
   faCamera,
@@ -70,17 +69,18 @@ export default function Home() {
     if (!hasStores) {
       showAlert({
         title: "가게 등록 필요",
-        message: "먼저 가게를 등록해야 합니다. 가게 등록 페이지로 이동하시겠습니까?",
+        message:
+          "먼저 가게를 등록해야 합니다. 가게 등록 페이지로 이동하시겠습니까?",
         type: "info",
         confirmText: "가게 등록하기",
         cancelText: "취소",
         onConfirm: () => {
           router.push("/store/add");
-        }
+        },
       });
       return;
     }
-    
+
     if (isAvailable) {
       console.log("🎯 [handlePhotoGuide] 카메라 촬영 시도");
       bridge.openCamera(pathname, (result) => {
@@ -94,7 +94,9 @@ export default function Home() {
             // 촬영한 이미지 URL과 선택된 가게 정보를 쿼리 파라미터로 전달하여 메뉴 등록 페이지로 이동
             const encodedImageUrl = encodeURIComponent(result.tempFileURL);
             const selectedStoreInfo = stores[selectedStore];
-            router.push(`/menu/add?imageUrl=${encodedImageUrl}&storeId=${selectedStoreInfo.storeId}`);
+            router.push(
+              `/menu/add?imageUrl=${encodedImageUrl}&storeId=${selectedStoreInfo.storeId}`
+            );
           } else {
             console.log("🎯 [handlePhotoGuide] 파일 URL 없음 (요청만 수락됨)");
           }
@@ -162,7 +164,7 @@ export default function Home() {
               onClick={() => setIsStoreDropdownOpen(!isStoreDropdownOpen)}
               disabled={!hasStores}
             >
-              <span className="font-medium">
+              <span className="font-medium text-2xl">
                 {storesLoading ? (
                   <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse"></span>
                 ) : hasStores ? (
@@ -201,13 +203,6 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <FontAwesomeIcon
-              icon={faBell}
-              className="text-xl text-gray-600 cursor-pointer"
-            />
           </div>
         </div>
 
@@ -258,8 +253,7 @@ export default function Home() {
                 icon={faCamera}
                 className="text-2xl text-blue-600"
               />
-              <span className="font-medium">음식 촬영 가이드</span>
-              <span className="text-sm text-gray-500">멋진 사진 찍기</span>
+              <span className="font-medium text-lg">가이드로 촬영</span>
             </Button>
 
             <Button
@@ -271,8 +265,7 @@ export default function Home() {
                 icon={faUtensils}
                 className="text-2xl text-green-600"
               />
-              <span className="font-medium">메뉴 관리하기</span>
-              <span className="text-sm text-gray-500">메뉴 등록/수정</span>
+              <span className="font-medium text-lg">메뉴 등록/수정</span>
             </Button>
 
             {/* <Button

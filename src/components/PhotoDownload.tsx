@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
+import { usePhotosByFood } from "@/hooks/usePhoto";
 
 interface Platform {
   name: string;
@@ -48,12 +49,14 @@ const platforms: Platform[] = [
 interface PhotoDownloadProps {
   foodName: string;
   thumbnailUrl?: string;
+  foodItemId: number;
   onClose: () => void;
 }
 
 const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   foodName,
   thumbnailUrl,
+  foodItemId,
   onClose,
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
@@ -61,6 +64,14 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   );
   const [isDownloading, setIsDownloading] = useState(false);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
+
+  // 음식별 사진 정보 조회
+  const { data: photoData } = usePhotosByFood(foodItemId, {
+    page: 0,
+    size: 1,
+  });
+
+  const originalPhoto = photoData?.result?.content?.[0];
 
   const handlePlatformSelect = async (platform: Platform) => {
     if (!thumbnailUrl) {
@@ -110,7 +121,7 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
       }
 
       // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
-      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&q=90&f=jpeg`;
+      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&f=jpeg`;
 
       // 이미지 로드하여 다운로드
       const img = new window.Image();
@@ -197,7 +208,11 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
           <div className="flex items-center gap-3">
             {thumbnailUrl ? (
               <Image
-                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}`}
+                src={
+                  thumbnailUrl && originalPhoto
+                    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
+                    : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=60x60&t=crop&q=70`
+                }
                 alt={foodName}
                 width={60}
                 height={60}

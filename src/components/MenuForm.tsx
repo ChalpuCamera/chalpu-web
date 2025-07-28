@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CreateFoodRequest, UpdateFoodRequest, Food } from "@/lib/api/types";
 import MenuPhotoSection from "@/components/MenuPhotoSection";
-import { usePhotosByFood } from "@/hooks/usePhoto";
 import { useNativeBridge } from "@/utils/nativeBridge";
 import { useSearchParams, usePathname } from "next/navigation";
 import { uploadPhoto } from "@/utils/photoUpload";
+import { usePhotosByFood } from "@/hooks/usePhoto";
 
 interface MenuFormProps {
   mode: "create" | "edit";
@@ -57,24 +57,33 @@ const MenuForm: React.FC<MenuFormProps> = ({
 
   // 현재 표시할 이미지 URL (홈화면에서 촬영하거나 새로 촬영한 이미지)
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  // 기존 사진이 삭제되었는지 추적
+  const [isPhotoDeleted, setIsPhotoDeleted] = useState(false);
 
-  // 음식별 사진 목록 조회 (edit 모드에서만)
-  const { data: photosData, refetch: refetchPhotos } = usePhotosByFood(
-    foodId || 0,
-    { page: 0, size: 10 }
+  // 음식별 사진 정보 조회 (edit 모드일 때만)
+  const { data: photoData } = usePhotosByFood(
+    mode === "edit" && foodId ? foodId : 0,
+    {
+      page: 0,
+      size: 1,
+    }
   );
 
-  const photos = photosData?.result?.content || [];
-  const hasExistingPhotos = photos.length > 0;
+  const originalPhoto = photoData?.result?.content?.[0];
+
+  // 음식별 사진은 하나씩만 저장되므로 단순화
+  const hasExistingPhotos = !!(mode === "edit" && initialData?.thumbnailUrl);
 
   // 초기 데이터 설정
   useEffect(() => {
     if (mode === "edit" && initialData) {
+      console.log("initialData:", initialData);
       setFormData({
         foodName: initialData.foodName,
         description: initialData.description,
         price: initialData.price,
         isActive: initialData.isActive,
+        thumbnailUrl: initialData.thumbnailUrl,
       });
     }
   }, [mode, initialData, storeId]);
@@ -94,12 +103,14 @@ const MenuForm: React.FC<MenuFormProps> = ({
       setCurrentImageUrl(initialImageUrl);
       // 이미지 URL을 파일로 변환하여 처리
       fetch(initialImageUrl)
-        .then(response => response.blob())
-        .then(blob => {
-          const file = new File([blob], "home-camera-photo.jpg", { type: "image/jpeg" });
+        .then((response) => response.blob())
+        .then((blob) => {
+          const file = new File([blob], "home-camera-photo.jpg", {
+            type: "image/jpeg",
+          });
           handleFileSelect(file);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("홈화면 이미지 로드 실패:", error);
         });
     }
@@ -115,16 +126,29 @@ const MenuForm: React.FC<MenuFormProps> = ({
     // 파일 선택 시 상태에 저장 (실제 업로드는 onSubmit에서 처리)
     console.log("파일 선택됨:", file.name);
     setSelectedFile(file);
+    // 새 파일이 선택되면 삭제 상태 해제
+    setIsPhotoDeleted(false);
   };
 
   const handlePhotoDelete = () => {
-    // 사진 삭제 후 목록 새로고침
-    refetchPhotos();
+    // 사진 삭제 시 현재 이미지 URL 초기화
+    setCurrentImageUrl(null);
+    setSelectedFile(null);
+    // 기존 사진이 삭제되었음을 표시
+    setIsPhotoDeleted(true);
+  };
+
+  const handleFileRemove = () => {
+    // 파일 제거 시 선택된 파일 초기화
+    setSelectedFile(null);
+    setIsPhotoDeleted(true);
   };
 
   const handleFeaturedChange = () => {
-    // 대표 사진 변경 후 목록 새로고침
-    refetchPhotos();
+    // 대표 사진 변경 시 현재 이미지 URL 업데이트
+    if (initialData?.thumbnailUrl) {
+      setCurrentImageUrl(initialData.thumbnailUrl);
+    }
   };
 
   const handleTakeNewPhoto = () => {
@@ -133,19 +157,23 @@ const MenuForm: React.FC<MenuFormProps> = ({
         if (result.success && result.tempFileURL) {
           // 새로 찍은 사진 처리
           console.log("새로 찍은 사진:", result.tempFileURL);
-          const fullImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
-          
+          const fullImageUrl = originalPhoto
+            ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
+            : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?q=70`;
+
           // 현재 표시할 이미지 URL 업데이트
           setCurrentImageUrl(fullImageUrl);
-          
+
           // 새로 촬영한 이미지를 파일로 변환하여 처리
           fetch(fullImageUrl)
-            .then(response => response.blob())
-            .then(blob => {
-              const file = new File([blob], "new-camera-photo.jpg", { type: "image/jpeg" });
+            .then((response) => response.blob())
+            .then((blob) => {
+              const file = new File([blob], "new-camera-photo.jpg", {
+                type: "image/jpeg",
+              });
               handleFileSelect(file);
             })
-            .catch(error => {
+            .catch((error) => {
               console.error("새로 촬영한 이미지 로드 실패:", error);
               alert("이미지를 불러오는데 실패했습니다.");
             });
@@ -173,6 +201,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("handleSubmit");
     e.preventDefault();
 
     // 유효성 검사
@@ -187,9 +216,23 @@ const MenuForm: React.FC<MenuFormProps> = ({
     }
 
     try {
-      // 먼저 메뉴 정보를 저장 (foodId 생성)
-      const result = await onSubmit(formData);
-      console.log("메뉴 저장 완료:", result);
+      let result;
+      // edit 모드에서 기존 사진이 삭제된 경우 thumbnailUrl을 ""로 설정
+      console.log("isPhotoDeleted:", isPhotoDeleted);
+      console.log("mode:", mode);
+      console.log("selectedFile:", selectedFile);
+      if (mode === "edit" && isPhotoDeleted) {
+        const updatedFormData = {
+          ...formData,
+          thumbnailUrl: "",
+        };
+        result = await onSubmit(updatedFormData);
+        console.log("메뉴 저장 완료 (사진 삭제):", result);
+      } else {
+        // 먼저 메뉴 정보를 저장 (foodId 생성)
+        result = await onSubmit(formData);
+        console.log("메뉴 저장 완료:", result);
+      }
 
       // 메뉴 저장 후 사진이 있는 경우 업로드
       if (selectedFile) {
@@ -229,7 +272,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
         mode={mode}
         storeId={storeId}
         foodId={foodId}
-        photos={photos}
+        photos={[]}
         hasExistingPhotos={hasExistingPhotos}
         fromNativeCamera={fromNativeCamera}
         nativePhotoPath={nativePhotoPath}
@@ -238,7 +281,8 @@ const MenuForm: React.FC<MenuFormProps> = ({
         onPhotoDelete={handlePhotoDelete}
         onFeaturedChange={handleFeaturedChange}
         onTakeNewPhoto={handleTakeNewPhoto}
-        initialImageUrl={currentImageUrl || initialImageUrl}
+        onFileRemove={handleFileRemove}
+        initialImageUrl={currentImageUrl || initialData?.thumbnailUrl}
       />
 
       {/* 단순화된 폼: 이름, 설명, 가격만 */}
