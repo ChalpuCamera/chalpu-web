@@ -122,10 +122,12 @@ export default function Home() {
     // 활동 로그 생성
     createActivity.mutate({
       type: "menu",
-      title: "메뉴 관리하기",
+      title: hasStores && stores[selectedStore]
+      ? `${stores[selectedStore].storeName} 매장 메뉴 관리`
+      : "메뉴 관리 페이지로 이동",
       description:
         hasStores && stores[selectedStore]
-          ? `${stores[selectedStore].storeName} 매장의 메뉴를 관리했습니다`
+          ? `${stores[selectedStore].storeName} 매장 메뉴 관리`
           : "메뉴 관리 페이지로 이동했습니다",
     });
 
@@ -409,9 +411,6 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-medium">{activity.title}</p>
-                    <p className="text-sm text-gray-500">
-                      {activity.description}
-                    </p>
                   </div>
                 </div>
               ))}
