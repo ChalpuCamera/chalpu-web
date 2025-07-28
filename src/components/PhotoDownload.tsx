@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
+import { usePhotosByFood } from "@/hooks/usePhoto";
 
 interface Platform {
   name: string;
@@ -48,12 +49,14 @@ const platforms: Platform[] = [
 interface PhotoDownloadProps {
   foodName: string;
   thumbnailUrl?: string;
+  foodItemId: number;
   onClose: () => void;
 }
 
 const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   foodName,
   thumbnailUrl,
+  foodItemId,
   onClose,
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
@@ -61,6 +64,14 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   );
   const [isDownloading, setIsDownloading] = useState(false);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
+
+  // 음식별 사진 정보 조회
+  const { data: photoData } = usePhotosByFood(foodItemId, {
+    page: 0,
+    size: 1,
+  });
+
+  const originalPhoto = photoData?.result?.content?.[0];
 
   const handlePlatformSelect = async (platform: Platform) => {
     if (!thumbnailUrl) {
@@ -95,53 +106,39 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
     fileName: string
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      // 플랫폼별 최적 크기 설정
+      let outputWidth: number;
+      let outputHeight: number;
+
+      if (targetAspectRatio >= 1) {
+        // 가로가 더 긴 경우 (16:9, 18:11, 4:3)
+        outputWidth = 1200;
+        outputHeight = Math.round(outputWidth / targetAspectRatio);
+      } else {
+        // 세로가 더 긴 경우 (1:1)
+        outputHeight = 1200;
+        outputWidth = Math.round(outputHeight * targetAspectRatio);
+      }
+
+      // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
+      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&f=jpeg`;
+
+      // 이미지 로드하여 다운로드
       const img = new window.Image();
-
       img.crossOrigin = "anonymous";
+
       img.onload = () => {
-        const { width: imgWidth, height: imgHeight } = img;
-        const imgAspectRatio = imgWidth / imgHeight;
-
-        let cropWidth, cropHeight, cropX, cropY;
-
-        if (imgAspectRatio > targetAspectRatio) {
-          // 이미지가 더 넓음 - 높이를 기준으로 자르기
-          cropHeight = imgHeight;
-          cropWidth = cropHeight * targetAspectRatio;
-          cropX = (imgWidth - cropWidth) / 2;
-          cropY = 0;
-        } else {
-          // 이미지가 더 높음 - 너비를 기준으로 자르기
-          cropWidth = imgWidth;
-          cropHeight = cropWidth / targetAspectRatio;
-          cropX = 0;
-          cropY = (imgHeight - cropHeight) / 2;
-        }
-
-        // 캔버스 크기 설정 (적절한 출력 크기로)
-        const outputWidth = 1200;
-        const outputHeight = outputWidth / targetAspectRatio;
+        // 캔버스에 그려서 다운로드
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
         canvas.width = outputWidth;
         canvas.height = outputHeight;
 
         if (ctx) {
-          // 이미지 크롭하여 캔버스에 그리기
-          ctx.drawImage(
-            img,
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight,
-            0,
-            0,
-            outputWidth,
-            outputHeight
-          );
+          ctx.drawImage(img, 0, 0, outputWidth, outputHeight);
 
-          // 캔버스를 blob으로 변환
+          // 캔버스를 blob으로 변환하여 다운로드
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -150,12 +147,21 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
                 // 파일 다운로드
                 const link = document.createElement("a");
                 link.href = url;
-                link.download = `${fileName}_${platformName}_${new Date().getTime()}.jpg`;
+                const timestamp = new Date()
+                  .toISOString()
+                  .slice(0, 19)
+                  .replace(/:/g, "-");
+                link.download = `${fileName}_${platformName}_${timestamp}.jpg`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
 
-                resolve(url);
+                // Blob URL 정리
+                setTimeout(() => {
+                  URL.revokeObjectURL(url);
+                }, 100);
+
+                resolve(croppedImageUrl);
               } else {
                 reject(new Error("이미지 변환에 실패했습니다."));
               }
@@ -169,10 +175,13 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
       };
 
       img.onerror = () => {
-        reject(new Error("이미지 로드에 실패했습니다."));
+        console.error("이미지 로드 실패:", croppedImageUrl);
+        reject(
+          new Error("이미지 로드에 실패했습니다. CDN 서버를 확인해주세요.")
+        );
       };
 
-      img.src = imageUrl;
+      img.src = croppedImageUrl;
     });
   };
 
@@ -199,7 +208,11 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
           <div className="flex items-center gap-3">
             {thumbnailUrl ? (
               <Image
-                src={thumbnailUrl}
+                src={
+                  thumbnailUrl && originalPhoto
+                    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
+                    : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=60x60&t=crop&q=70`
+                }
                 alt={foodName}
                 width={60}
                 height={60}

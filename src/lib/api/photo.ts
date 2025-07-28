@@ -63,8 +63,8 @@ export const photoApi = {
 
     const queryString = searchParams.toString();
     const endpoint = queryString
-      ? `/api/photos/store/${foodItemId}?${queryString}`
-      : `/api/photos/store/${foodItemId}`;
+      ? `/api/photos/food-item/${foodItemId}?${queryString}`
+      : `/api/photos/food-item/${foodItemId}`;
 
     return apiRequest<PagedResult<Photo>>(endpoint);
   },

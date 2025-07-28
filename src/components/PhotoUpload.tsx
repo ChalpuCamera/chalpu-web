@@ -30,6 +30,7 @@ interface PhotoUploadProps {
   description?: string;
   maxPhotos?: number;
   previewOnly?: boolean;
+  initialPreviewUrl?: string;
 }
 
 const PhotoUpload: React.FC<PhotoUploadProps> = ({
@@ -46,9 +47,12 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   description,
   maxPhotos = 10,
   previewOnly = false,
+  initialPreviewUrl,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    initialPreviewUrl || null
+  );
   const { bridge, isAvailable } = useNativeBridge();
   const pathname = usePathname();
 
@@ -108,7 +112,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
             console.warn("ArrayBuffer 읽기 실패, 원본 파일 사용:", readError);
             fileToUse = file;
           }
-          
+
           currentPreviewUrl = URL.createObjectURL(fileToUse);
           setPreviewUrl(currentPreviewUrl);
           onFileSelect?.(fileToUse);
@@ -122,12 +126,14 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         let fileToUpload: File;
         try {
           const arrayBuffer = await file.arrayBuffer();
-          fileToUpload = new File([arrayBuffer], file.name, { type: file.type });
+          fileToUpload = new File([arrayBuffer], file.name, {
+            type: file.type,
+          });
         } catch (readError) {
           console.warn("ArrayBuffer 읽기 실패, 원본 파일 사용:", readError);
           fileToUpload = file;
         }
-        
+
         currentPreviewUrl = URL.createObjectURL(fileToUpload);
         setPreviewUrl(currentPreviewUrl);
 
@@ -139,7 +145,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
         // 업로드 성공 후에만 Blob URL 정리하고 서버 URL로 변경
         setPreviewUrl(result.imageUrl);
-        
+
         // 서버 이미지로 변경 후 Blob URL 정리
         setTimeout(() => {
           if (currentPreviewUrl) {
@@ -184,7 +190,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   const handleRemove = () => {
-    if (previewUrl && previewUrl.startsWith('blob:')) {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
       try {
         URL.revokeObjectURL(previewUrl);
       } catch (error) {
@@ -229,34 +235,40 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
           if (result.tempFileURL) {
             console.log("카메라 촬영 성공:", result.tempFileURL);
 
-            // CDN URL을 앞에 붙여서 완전한 이미지 URL 생성
-            const fullImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
+            // 원본 사진 정보가 있으면 해당 크기로, 없으면 기본 크기로 URL 생성
+            const fullImageUrl = cdnPhoto
+              ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${cdnPhoto.imageWidth}x${cdnPhoto.imageHeight}&t=crop&q=70`
+              : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?q=70`;
             console.log("완전한 이미지 URL:", fullImageUrl);
 
             if (previewOnly) {
               // previewOnly 모드일 때는 미리보기만 설정
               setPreviewUrl(fullImageUrl);
-              
+
               // CDN URL에서 실제 이미지 데이터를 가져와서 File 객체 생성
               fetch(fullImageUrl)
-                .then(response => response.blob())
-                .then(blob => {
-                  const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+                .then((response) => response.blob())
+                .then((blob) => {
+                  const file = new File([blob], "camera-photo.jpg", {
+                    type: "image/jpeg",
+                  });
                   onFileSelect?.(file);
                 })
-                .catch(error => {
+                .catch((error) => {
                   console.error("이미지 로드 실패:", error);
                   onUploadError?.("이미지를 불러오는데 실패했습니다.");
                 });
             } else {
               // CDN URL에서 실제 이미지 데이터를 가져와서 업로드 처리
               fetch(fullImageUrl)
-                .then(response => response.blob())
-                .then(blob => {
-                  const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+                .then((response) => response.blob())
+                .then((blob) => {
+                  const file = new File([blob], "camera-photo.jpg", {
+                    type: "image/jpeg",
+                  });
                   handleFileSelect(file);
                 })
-                .catch(error => {
+                .catch((error) => {
                   console.error("이미지 로드 실패:", error);
                   onUploadError?.("이미지를 불러오는데 실패했습니다.");
                 });

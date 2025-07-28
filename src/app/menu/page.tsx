@@ -24,6 +24,107 @@ import Image from "next/image";
 import NavBar from "@/components/ui/navbar";
 import { useAlertDialog } from "@/components/ui/alert-dialog";
 import PhotoDownload from "@/components/PhotoDownload";
+import { usePhotosByFood } from "@/hooks/usePhoto";
+
+interface MenuItemCardProps {
+  food: Food;
+  onDelete: (foodId: number, foodName: string) => void;
+  onEdit: (foodId: number) => void;
+  onDownload: (food: Food) => void;
+  isDeleting: boolean;
+}
+
+const MenuItemCard: React.FC<MenuItemCardProps> = ({
+  food,
+  onDelete,
+  onEdit,
+  onDownload,
+  isDeleting,
+}) => {
+  const { data: photoData } = usePhotosByFood(food.foodItemId, {
+    page: 0,
+    size: 1,
+  });
+
+  const originalPhoto = photoData?.result?.content?.[0];
+  const imageUrl = food.thumbnailUrl && originalPhoto
+    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
+    : food.thumbnailUrl
+    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?s=80x80&t=crop&q=70`
+    : null;
+
+  const formatPrice = (price: number) => {
+    return price.toLocaleString() + "원";
+  };
+
+  return (
+    <Card className="p-3 flex items-center gap-4">
+      <FontAwesomeIcon
+        icon={faGripVertical}
+        className="text-gray-400"
+      />
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={food.foodName}
+          width={80}
+          height={80}
+          className="w-20 h-20 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
+          <FontAwesomeIcon
+            icon={faImage}
+            className="text-gray-400 text-2xl"
+          />
+        </div>
+      )}
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-gray-800">
+            {food.foodName}
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg text-red-500 border-red-500"
+            onClick={() => onDelete(food.foodItemId, food.foodName)}
+            disabled={isDeleting}
+          >
+            <FontAwesomeIcon icon={faTrash} className="mr-1" />
+            삭제
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-semibold text-gray-800 mb-1">
+            {formatPrice(food.price)}
+          </p>
+        </div>
+        <div className="flex w-full gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg flex-1"
+            onClick={() => onEdit(food.foodItemId)}
+          >
+            <FontAwesomeIcon icon={faEdit} className="mr-1" />
+            수정
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg flex-1"
+            onClick={() => onDownload(food)}
+          >
+            <FontAwesomeIcon icon={faDownload} className="mr-1" />
+            다운로드
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 const MenuPage: React.FC = () => {
   const router = useRouter();
@@ -203,10 +304,6 @@ const MenuPage: React.FC = () => {
     });
   };
 
-  // 가격 포맷팅 함수
-  const formatPrice = (price: number) => {
-    return price.toLocaleString() + "원";
-  };
 
   // 매장이 없는 경우 안내 화면 표시
   if (storesData && !hasStores) {
@@ -353,69 +450,14 @@ const MenuPage: React.FC = () => {
           </div>
         ) : (
           foods.map((food: Food) => (
-            <Card key={food.foodItemId} className="p-3 flex items-center gap-3">
-              <FontAwesomeIcon
-                icon={faGripVertical}
-                className="text-gray-400"
-              />
-              {food.thumbnailUrl ? (
-                <Image
-                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?q=70`}
-                  alt={food.foodName}
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <FontAwesomeIcon
-                    icon={faImage}
-                    className="text-gray-400 text-2xl"
-                  />
-                </div>
-              )}
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-medium">{food.foodName}</h3>
-                  <span className="text-base">{formatPrice(food.price)}</span>
-                </div>
-                <p className="text-base text-gray-600 line-clamp-2 mb-2">
-                  {food.description}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() => handleEditMenu(food.foodItemId)}
-                  >
-                    <FontAwesomeIcon icon={faEdit} className="mr-1" />
-                    수정
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() => handleDownloadMenu(food)}
-                  >
-                    <FontAwesomeIcon icon={faDownload} className="mr-1" />
-                    다운로드
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg text-red-500 border-red-500"
-                    onClick={() =>
-                      handleDeleteMenu(food.foodItemId, food.foodName)
-                    }
-                    disabled={deleteFoodMutation.isPending}
-                  >
-                    <FontAwesomeIcon icon={faTrash} className="mr-1" />
-                    삭제
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            <MenuItemCard
+              key={food.foodItemId}
+              food={food}
+              onDelete={handleDeleteMenu}
+              onEdit={handleEditMenu}
+              onDownload={handleDownloadMenu}
+              isDeleting={deleteFoodMutation.isPending}
+            />
           ))
         )}
       </div>
@@ -425,6 +467,7 @@ const MenuPage: React.FC = () => {
         <PhotoDownload
           foodName={selectedFoodForDownload.foodName}
           thumbnailUrl={selectedFoodForDownload.thumbnailUrl}
+          foodItemId={selectedFoodForDownload.foodItemId}
           onClose={handleCloseDownload}
         />
       )}

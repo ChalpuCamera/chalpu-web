@@ -68,6 +68,7 @@ export const uploadPhoto = async (
     // 업로드된 사진을 대표 사진으로 설정
     if (foodItemId !== 0) {
       await photoApi.setFeaturedPhoto(result.photoId, foodItemId);
+      console.log("대표 사진 설정 완료");
     }
 
     return result;

@@ -146,6 +146,7 @@ export interface UpdateFoodRequest {
   price?: number;
   stock?: number;
   isActive?: boolean;
+  thumbnailUrl?: string;
 }
 
 // Photo 타입 (실제 API 스펙)

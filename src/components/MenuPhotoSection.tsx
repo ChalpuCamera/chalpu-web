@@ -1,12 +1,10 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Photo } from "@/lib/api/types";
 import PhotoUpload from "@/components/PhotoUpload";
-import PhotoGallery from "@/components/PhotoGallery";
-import Image from "next/image";
+import { usePhotosByFood } from "@/hooks/usePhoto";
 
 interface MenuPhotoSectionProps {
   mode: "create" | "edit";
@@ -22,23 +20,40 @@ interface MenuPhotoSectionProps {
   onFeaturedChange: () => void;
   onTakeNewPhoto: () => void;
   initialImageUrl?: string;
+  initialThumbnailUrl?: string;
+  onFileRemove?: () => void;
 }
 
 const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
   mode,
   storeId,
   foodId,
-  photos,
   hasExistingPhotos,
   fromNativeCamera,
   nativePhotoPath,
   onFileSelect,
   onPhotoUploadError,
-  onPhotoDelete,
-  onFeaturedChange,
-  onTakeNewPhoto,
   initialImageUrl,
+  onFileRemove,
 }) => {
+  // 음식별 사진 정보 조회 (edit 모드일 때만)
+  const { data: photoData } = usePhotosByFood(
+    mode === "edit" && foodId ? foodId : 0,
+    {
+      page: 0,
+      size: 1,
+    }
+  );
+
+  const originalPhoto = photoData?.result?.content?.[0];
+
+  // 이미지 URL 생성 함수
+  const getImageUrl = (imageUrl: string) => {
+    if (originalPhoto) {
+      return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`;
+    }
+    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?q=70`;
+  };
   if (mode === "create") {
     // 1. 사진 없이 생성하는 경우 & 2. 네이티브에서 사진촬영 후 생성하는 경우
     return (
@@ -47,26 +62,17 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
 
         {(fromNativeCamera && nativePhotoPath) || initialImageUrl ? (
           // 네이티브에서 촬영된 사진이나 홈화면에서 촬영된 사진이 있는 경우
-          <div className="space-y-4">
-            <div className="relative">
-              <Image
-                src={nativePhotoPath || initialImageUrl || ""}
-                alt="촬영된 사진 미리보기"
-                width={400}
-                height={192}
-                className="w-full h-48 object-cover rounded-lg"
-              />
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onTakeNewPhoto}
-              className="w-full"
-            >
-              새로 찍기
-            </Button>
-          </div>
+          <PhotoUpload
+            storeId={storeId}
+            foodItemId={0} // create 모드에서는 0
+            onFileSelect={onFileSelect}
+            onUploadError={onPhotoUploadError}
+            onFileRemove={onFileRemove}
+            mode="create"
+            maxPhotos={10}
+            previewOnly={true} // 미리보기만, 등록 버튼 클릭 시 업로드
+            initialPreviewUrl={nativePhotoPath || initialImageUrl}
+          />
         ) : (
           // 일반적인 사진 업로드 (미리보기만)
           <PhotoUpload
@@ -74,6 +80,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
             foodItemId={0} // create 모드에서는 0
             onFileSelect={onFileSelect}
             onUploadError={onPhotoUploadError}
+            onFileRemove={onFileRemove}
             mode="create"
             maxPhotos={10}
             previewOnly={true} // 미리보기만, 등록 버튼 클릭 시 업로드
@@ -84,49 +91,35 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
   } else {
     // edit 모드
     if (hasExistingPhotos) {
-      // 4. 기존에 사진이 있는 메뉴를 수정하는 경우
       return (
         <div className="space-y-4">
           <Label className="text-sm font-medium">메뉴 사진</Label>
 
-          {/* 새로 찍기 + 갤러리 선택 버튼 */}
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onTakeNewPhoto}
-              className="flex flex-col items-center py-6"
-            >
-              <span className="text-2xl mb-2">📷</span>
-              <span>새로 찍기</span>
-            </Button>
-
+          {initialImageUrl ? (
+            // 기존 사진이 있는 경우
             <PhotoUpload
               storeId={storeId}
               foodItemId={foodId || 0}
               onFileSelect={onFileSelect}
               onUploadError={onPhotoUploadError}
-              mode="gallery-only"
-              showGalleryButton={true}
-              showCameraButton={false}
+              onFileRemove={onFileRemove}
+              mode="create"
+              maxPhotos={10}
+              previewOnly={true} // 미리보기만, 수정 버튼 클릭 시 업로드
+              initialPreviewUrl={getImageUrl(initialImageUrl)}
+            />
+          ) : (
+            <PhotoUpload
+              storeId={storeId}
+              foodItemId={foodId || 0}
+              onFileSelect={onFileSelect}
+              onUploadError={onPhotoUploadError}
+              onFileRemove={onFileRemove}
+              mode="create"
               maxPhotos={10}
               previewOnly={true} // 미리보기만, 수정 버튼 클릭 시 업로드
             />
-          </div>
-
-          {/* 등록된 사진들 */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">등록된 사진들</Label>
-            <PhotoGallery
-              photos={photos}
-              onPhotoDelete={onPhotoDelete}
-              onFeaturedChange={onFeaturedChange}
-              showDeleteButton={true}
-              showFeaturedButton={true}
-              showMultiSelect={true}
-              maxPhotos={10}
-            />
-          </div>
+          )}
         </div>
       );
     } else {
@@ -140,6 +133,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
             foodItemId={foodId || 0}
             onFileSelect={onFileSelect}
             onUploadError={onPhotoUploadError}
+            onFileRemove={onFileRemove}
             mode="create" // edit 모드지만 create UI 사용
             maxPhotos={10}
             previewOnly={true} // 미리보기만, 수정 버튼 클릭 시 업로드
