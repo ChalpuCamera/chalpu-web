@@ -48,8 +48,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
 
   const originalPhoto = photoData?.result?.content?.[0];
   const imageUrl = food.thumbnailUrl && originalPhoto
-    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
-    : food.thumbnailUrl
     ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${food.thumbnailUrl}?s=80x80&t=crop&q=70`
     : null;
 
