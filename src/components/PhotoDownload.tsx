@@ -105,7 +105,7 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
     platformName: string,
     fileName: string
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       // 플랫폼별 최적 크기 설정
       let outputWidth: number;
       let outputHeight: number;
@@ -121,67 +121,25 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
       }
 
       // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
-      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&f=jpeg`;
+      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&q=100`;
+      console.log("croppedImageUrl", croppedImageUrl);
+      // HTTP URL 직접 다운로드 (안드로이드가 감지할 수 있도록)
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/:/g, "-");
+      const downloadFileName = `${fileName}_${platformName}_${timestamp}.jpg`;
 
-      // 이미지 로드하여 다운로드
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
+      const link = document.createElement("a");
+      link.href = croppedImageUrl; // HTTP URL 직접 사용
+      link.download = downloadFileName;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log("link", link);
 
-      img.onload = () => {
-        // 캔버스에 그려서 다운로드
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        canvas.width = outputWidth;
-        canvas.height = outputHeight;
-
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, outputWidth, outputHeight);
-
-          // 캔버스를 blob으로 변환하여 다운로드
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const url = URL.createObjectURL(blob);
-
-                // 파일 다운로드
-                const link = document.createElement("a");
-                link.href = url;
-                const timestamp = new Date()
-                  .toISOString()
-                  .slice(0, 19)
-                  .replace(/:/g, "-");
-                link.download = `${fileName}_${platformName}_${timestamp}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                // Blob URL 정리
-                setTimeout(() => {
-                  URL.revokeObjectURL(url);
-                }, 100);
-
-                resolve(croppedImageUrl);
-              } else {
-                reject(new Error("이미지 변환에 실패했습니다."));
-              }
-            },
-            "image/jpeg",
-            0.9
-          );
-        } else {
-          reject(new Error("캔버스 컨텍스트를 가져올 수 없습니다."));
-        }
-      };
-
-      img.onerror = () => {
-        console.error("이미지 로드 실패:", croppedImageUrl);
-        reject(
-          new Error("이미지 로드에 실패했습니다. CDN 서버를 확인해주세요.")
-        );
-      };
-
-      img.src = croppedImageUrl;
+      resolve(croppedImageUrl);
     });
   };
 
