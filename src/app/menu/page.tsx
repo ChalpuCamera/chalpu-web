@@ -13,7 +13,7 @@ import {
   faChevronDown,
   faChevronUp,
   faCheck,
-  faGripVertical,
+  // faGripVertical,
   faImage,
   faDownload,
 } from "@fortawesome/free-solid-svg-icons";
@@ -57,10 +57,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
 
   return (
     <Card className="p-3 flex items-center gap-4">
-      <FontAwesomeIcon
+      {/* <FontAwesomeIcon
         icon={faGripVertical}
         className="text-gray-400"
-      />
+      /> */}
       {imageUrl ? (
         <Image
           src={imageUrl}
