@@ -217,7 +217,7 @@ export default function Home() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-lg font-medium">
+              <p className="text-base font-medium">
                 {userLoading ? (
                   <span className="inline-block w-24 h-5 bg-gray-200 rounded animate-pulse"></span>
                 ) : isUserError ? (

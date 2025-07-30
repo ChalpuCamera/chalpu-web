@@ -48,7 +48,19 @@ export function LoginGuard({ children }: LoginGuardProps) {
     window.location.reload();
   };
 
-  // 유저 정보 로딩 중
+  // 토큰이 없으면 네이티브 로그인 호출
+  if (!isLoggedIn || !tokens) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">로그인 화면으로 이동 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 토큰이 있으면 로딩 후 홈화면
   if (userInfoLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
