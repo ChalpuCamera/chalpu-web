@@ -9,7 +9,7 @@ import {
   faPlus,
   faStore,
   faEdit,
-  faChevronRight,
+  // faChevronRight,
   faMapMarkerAlt,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
@@ -86,20 +86,20 @@ const MyPage: React.FC = () => {
     setSelectedStoreIndex(index);
   };
 
-  const handleFieldEdit = (
-    field: keyof UpdateStoreRequest,
-    fieldLabel: string,
-    fieldType: "text" | "tel" | "address" = "text",
-    placeholder?: string
-  ) => {
-    setEditDialog({
-      isOpen: true,
-      field,
-      fieldLabel,
-      fieldType,
-      placeholder,
-    });
-  };
+  // const handleFieldEdit = (
+  //   field: keyof UpdateStoreRequest,
+  //   fieldLabel: string,
+  //   fieldType: "text" | "tel" | "address" = "text",
+  //   placeholder?: string
+  // ) => {
+  //   setEditDialog({
+  //     isOpen: true,
+  //     field,
+  //     fieldLabel,
+  //     fieldType,
+  //     placeholder,
+  //   });
+  // };
 
   const handleDeleteStore = async (storeId: number, storeName: string) => {
     showAlert({
@@ -260,6 +260,7 @@ const MyPage: React.FC = () => {
                             icon={faEdit}
                             className="text-base"
                           />
+                          수정
                         </button>
                         <button
                           onClick={(e) => {
@@ -274,6 +275,7 @@ const MyPage: React.FC = () => {
                             icon={faTrash}
                             className="text-base"
                           />
+                          삭제
                         </button>
                       </div>
                     </div>
@@ -294,14 +296,14 @@ const MyPage: React.FC = () => {
               <div className="divide-y divide-gray-100">
                 <div
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() =>
-                    handleFieldEdit(
-                      "storeName",
-                      "매장명",
-                      "text",
-                      "매장명을 입력해주세요"
-                    )
-                  }
+                  // onClick={() =>
+                  //   handleFieldEdit(
+                  //     "storeName",
+                  //     "매장명",
+                  //     "text",
+                  //     "매장명을 입력해주세요"
+                  //   )
+                  // }
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -317,7 +319,7 @@ const MyPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <FontAwesomeIcon
                       icon={faEdit}
                       className="text-gray-400 text-sm"
@@ -326,13 +328,13 @@ const MyPage: React.FC = () => {
                       icon={faChevronRight}
                       className="text-gray-400 text-sm"
                     />
-                  </div>
+                  </div> */}
                 </div>
                 <div
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() =>
-                    handleFieldEdit("address", "매장 주소", "address")
-                  }
+                  // onClick={() =>
+                  //   handleFieldEdit("address", "매장 주소", "address")
+                  // }
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -348,7 +350,7 @@ const MyPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <FontAwesomeIcon
                       icon={faEdit}
                       className="text-gray-400 text-sm"
@@ -357,19 +359,19 @@ const MyPage: React.FC = () => {
                       icon={faChevronRight}
                       className="text-gray-400 text-sm"
                     />
-                  </div>
+                  </div> */}
                 </div>
 
                 <div
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() =>
-                    handleFieldEdit(
-                      "businessType",
-                      "업종",
-                      "text",
-                      "예: 한식, 중식, 양식, 카페 등"
-                    )
-                  }
+                  // onClick={() =>
+                  //   handleFieldEdit(
+                  //     "businessType",
+                  //     "업종",
+                  //     "text",
+                  //     "예: 한식, 중식, 양식, 카페 등"
+                  //   )
+                  // }
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -385,7 +387,7 @@ const MyPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <FontAwesomeIcon
                       icon={faEdit}
                       className="text-gray-400 text-sm"
@@ -394,7 +396,7 @@ const MyPage: React.FC = () => {
                       icon={faChevronRight}
                       className="text-gray-400 text-sm"
                     />
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </Card>
