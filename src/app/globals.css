@@ -8,7 +8,7 @@
   --top-safe-area: env(safe-area-inset-top);
 
   /* 색상 테마 */
-  --primary: #3B82F6;
+  --primary: #3b82f6;
   --primary-light: #333333;
   --secondary: oklch(0.97 0 0);
   --accent: oklch(0.97 0 0);
@@ -54,10 +54,10 @@
 
 html,
 body {
-  max-width: 400px;
+  /* max-width: 400px; */
   height: 100vh;
-  align-items: center;
-  justify-content: center;
+  /* align-items: center;
+  justify-content: center; */
   margin: 0.5rem auto;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -165,25 +165,27 @@ body {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding-right: 8px; /* 스크롤바 공간 확보 */
+    margin-right: -8px; /* 패딩만큼 마진으로 조정 */
   }
 }
 
-/* 커스텀 스크롤바 (웹에서만) */
-::-webkit-scrollbar {
-  width: 6px;
+/* 스크롤바 완전 숨김 (모든 브라우저) */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+*::-webkit-scrollbar {
+  display: none; /* Webkit 브라우저 */
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
+/* 기존 스크롤바 스타일 제거 */
+::-webkit-scrollbar,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb,
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  display: none;
 }
 
 /* 폰트 최적화 */
