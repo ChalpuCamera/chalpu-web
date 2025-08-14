@@ -118,14 +118,14 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
 
       if (targetAspectRatio > originalAspectRatio) {
         // 타겟 비율이 원본보다 더 가로로 긴 경우 (더 와이드한 경우)
-        // 원본의 세로를 기준으로 가로를 계산
-        outputHeight = imageHeight;
-        outputWidth = Math.round(imageHeight * targetAspectRatio);
-      } else {
-        // 타겟 비율이 원본보다 덜 가로로 긴 경우 (더 스퀘어한 경우)
-        // 원본의 가로를 기준으로 세로를 계산
+        // 가로를 기준으로 맞추고 위아래를 자름
         outputWidth = imageWidth;
         outputHeight = Math.round(imageWidth / targetAspectRatio);
+      } else {
+        // 타겟 비율이 원본보다 덜 가로로 긴 경우 (더 스퀘어한 경우)
+        // 세로를 기준으로 맞추고 좌우를 자름
+        outputHeight = imageHeight;
+        outputWidth = Math.round(imageHeight * targetAspectRatio);
       }
 
       // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
