@@ -356,8 +356,7 @@ const MenuPage: React.FC = () => {
       />
 
       {/* Store Selector */}
-      <div className="mb-6">
-        <div className="px-4">
+      <div className="mb-6 px-4">
           <Button
             variant="outline"
             className="rounded-lg w-full flex items-center justify-between cursor-pointer"
@@ -399,7 +398,6 @@ const MenuPage: React.FC = () => {
               ))}
             </div>
           )}
-        </div>
       </div>
 
       {/* Category Tabs */}
