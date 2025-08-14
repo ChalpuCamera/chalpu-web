@@ -74,7 +74,7 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   const originalPhoto = photoData?.result?.content?.[0];
 
   const handlePlatformSelect = async (platform: Platform) => {
-    if (!thumbnailUrl) {
+    if (!thumbnailUrl || !originalPhoto) {
       alert("다운로드할 사진이 없습니다.");
       return;
     }
@@ -88,7 +88,9 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
         thumbnailUrl,
         platform.aspectRatio,
         platform.name,
-        foodName
+        foodName,
+        originalPhoto.imageHeight,
+        originalPhoto.imageWidth
       );
       setCroppedImageUrl(croppedUrl);
     } catch (error) {
@@ -103,21 +105,27 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
     imageUrl: string,
     targetAspectRatio: number,
     platformName: string,
-    fileName: string
+    fileName: string,
+    imageHeight: number,
+    imageWidth: number
   ): Promise<string> => {
     return new Promise((resolve) => {
-      // 플랫폼별 최적 크기 설정
+      // 원본 크기를 최대한 유지하면서 타겟 비율에 맞춤
+      // 이미지는 항상 가로가 세로보다 크다고 가정
+      const originalAspectRatio = imageWidth / imageHeight;
       let outputWidth: number;
       let outputHeight: number;
 
-      if (targetAspectRatio >= 1) {
-        // 가로가 더 긴 경우 (16:9, 18:11, 4:3)
-        outputWidth = 1200;
-        outputHeight = Math.round(outputWidth / targetAspectRatio);
+      if (targetAspectRatio > originalAspectRatio) {
+        // 타겟 비율이 원본보다 더 가로로 긴 경우 (더 와이드한 경우)
+        // 원본의 세로를 기준으로 가로를 계산
+        outputHeight = imageHeight;
+        outputWidth = Math.round(imageHeight * targetAspectRatio);
       } else {
-        // 세로가 더 긴 경우 (1:1)
-        outputHeight = 1200;
-        outputWidth = Math.round(outputHeight * targetAspectRatio);
+        // 타겟 비율이 원본보다 덜 가로로 긴 경우 (더 스퀘어한 경우)
+        // 원본의 가로를 기준으로 세로를 계산
+        outputWidth = imageWidth;
+        outputHeight = Math.round(imageWidth / targetAspectRatio);
       }
 
       // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
