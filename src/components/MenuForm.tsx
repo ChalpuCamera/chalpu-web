@@ -105,9 +105,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
       fetch(initialImageUrl)
         .then((response) => response.blob())
         .then((blob) => {
-          const file = new File([blob], "home-camera-photo.jpg", {
-            type: "image/jpeg",
-          });
+          const file = new File([blob], initialImageUrl);
           handleFileSelect(file);
         })
         .catch((error) => {
@@ -159,7 +157,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
           console.log("새로 찍은 사진:", result.tempFileURL);
           const fullImageUrl = originalPhoto
             ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
-            : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?q=70`;
+            : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
 
           // 현재 표시할 이미지 URL 업데이트
           setCurrentImageUrl(fullImageUrl);
@@ -168,9 +166,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
           fetch(fullImageUrl)
             .then((response) => response.blob())
             .then((blob) => {
-              const file = new File([blob], "new-camera-photo.jpg", {
-                type: "image/jpeg",
-              });
+              const file = new File([blob], result.tempFileURL as string);
               handleFileSelect(file);
             })
             .catch((error) => {

@@ -52,7 +52,7 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
     if (originalPhoto) {
       return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`;
     }
-    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?q=70`;
+    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}`;
   };
   if (mode === "create") {
     // 1. 사진 없이 생성하는 경우 & 2. 네이티브에서 사진촬영 후 생성하는 경우
