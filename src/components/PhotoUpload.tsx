@@ -490,7 +490,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
             alt="미리보기"
             width={400}
             height={192}
-            className="w-full h-48 object-cover rounded-lg"
+            className="w-full h-48 object-cover rounded-lg bg-white"
           />
           <div className="absolute top-2 right-2 flex gap-2">
             <Button
