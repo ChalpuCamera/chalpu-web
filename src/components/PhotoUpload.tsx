@@ -243,7 +243,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
             // 원본 사진 정보가 있으면 해당 크기로, 없으면 기본 크기로 URL 생성
             const fullImageUrl = cdnPhoto
               ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${cdnPhoto.imageWidth}x${cdnPhoto.imageHeight}&t=crop&q=70`
-              : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?q=70`;
+              : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
             console.log("완전한 이미지 URL:", fullImageUrl);
 
             if (previewOnly) {
@@ -254,9 +254,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               fetch(fullImageUrl)
                 .then((response) => response.blob())
                 .then((blob) => {
-                  const file = new File([blob], "camera-photo.jpg", {
-                    type: "image/jpeg",
-                  });
+                  const file = new File([blob], result.tempFileURL as string);
                   onFileSelect?.(file);
                 })
                 .catch((error) => {
@@ -268,9 +266,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               fetch(fullImageUrl)
                 .then((response) => response.blob())
                 .then((blob) => {
-                  const file = new File([blob], "camera-photo.jpg", {
-                    type: "image/jpeg",
-                  });
+                  const file = new File([blob], result.tempFileURL as string);
                   handleFileSelect(file);
                 })
                 .catch((error) => {
