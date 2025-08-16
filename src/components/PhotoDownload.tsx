@@ -182,7 +182,7 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
                 alt={foodName}
                 width={60}
                 height={60}
-                className="w-15 h-15 rounded-lg object-cover"
+                className="w-15 h-15 rounded-lg object-cover bg-white"
               />
             ) : (
               <div className="w-15 h-15 rounded-lg bg-gray-100 flex items-center justify-center">
@@ -245,13 +245,13 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
             <h5 className="text-sm font-medium mb-2">
               {selectedPlatform.name} 미리보기
             </h5>
-            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative bg-white rounded-lg overflow-hidden">
               <Image
                 src={croppedImageUrl}
                 alt={`${foodName} - ${selectedPlatform.name}`}
                 width={300}
                 height={300 / selectedPlatform.aspectRatio}
-                className="w-full object-cover"
+                className="w-full object-cover bg-white"
               />
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
