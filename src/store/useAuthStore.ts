@@ -32,28 +32,33 @@ export const useAuthStore = create<AuthState>()(
 
       // 로컬스토리지에서 accessToken 확인 및 자동 로그인
       initializeFromLocalStorage: () => {
-        const accessToken = localStorage.getItem("accessToken");
-        if (accessToken) {
-          const tokenObject = {
-            accessToken: accessToken,
-            refreshToken: "",
-            expiresIn: 3600,
-            tokenType: "Bearer",
-          };
-          set({
-            tokens: tokenObject,
-            isLoggedIn: true,
-            isLoading: false,
-          });
-          // 토큰 생성 시간이 없으면 현재 시간으로 설정
-          if (!localStorage.getItem("auth-storage-timestamp")) {
-            localStorage.setItem(
-              "auth-storage-timestamp",
-              Date.now().toString()
-            );
+        try {
+          const accessToken = localStorage.getItem("accessToken");
+          if (accessToken) {
+            const tokenObject = {
+              accessToken: accessToken,
+              refreshToken: "",
+              expiresIn: 3600,
+              tokenType: "Bearer",
+            };
+            set({
+              tokens: tokenObject,
+              isLoggedIn: true,
+              isLoading: false,
+            });
+            // 토큰 생성 시간이 없으면 현재 시간으로 설정
+            if (!localStorage.getItem("auth-storage-timestamp")) {
+              localStorage.setItem(
+                "auth-storage-timestamp",
+                Date.now().toString()
+              );
+            }
+          } else {
+            set({ isLoading: false, isLoggedIn: false, tokens: null });
           }
-        } else {
-          set({ isLoading: false });
+        } catch (error) {
+          console.error('토큰 초기화 실패:', error);
+          set({ isLoading: false, isLoggedIn: false, tokens: null });
         }
       },
 
@@ -80,6 +85,8 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setLoading(false);
+          // 초기 설치시 토큰 초기화 확실히 수행
+          setTimeout(() => state.initializeFromLocalStorage(), 0);
         }
       },
     }

@@ -27,9 +27,12 @@ export const useAuth = () => {
     } catch (error) {
       console.error("토큰 초기화 실패:", error);
       clearTokens();
-    } finally {
-      setLoading(false);
     }
+    
+    // 초기화 실패 시 안전장치: 3초 후 강제로 로딩 해제
+    setTimeout(() => {
+      setLoading(false);
+    }, 3000);
   }, [
     setLoading,
     clearTokens,
