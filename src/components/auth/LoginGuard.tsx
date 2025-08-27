@@ -18,7 +18,7 @@ interface LoginGuardProps {
 }
 
 export function LoginGuard({ children }: LoginGuardProps) {
-  const { tokens, setTokens, clearTokens, isLoggedIn } = useAuthStore();
+  const { tokens, setTokens, clearTokens, isLoggedIn, isLoading } = useAuthStore();
   const { bridge, isAvailable } = useNativeBridge();
   const {
     data: userInfo,
@@ -29,6 +29,17 @@ export function LoginGuard({ children }: LoginGuardProps) {
   const { data: activities } = useActivities(5);
   const { data: storesData } = useMyStores({ page: 0, size: 10 });
   const pathname = usePathname();
+  
+  // 디버깅용 로그
+  console.log('🛡️ [LoginGuard] 렌더링, 상태:', {
+    tokens: !!tokens,
+    isLoggedIn,
+    isLoading,
+    userInfoLoading,
+    userInfo: !!userInfo,
+    userInfoError: !!userInfoError,
+    isAvailable
+  });
 
   // 개발 모드에서 임시 로그인 (테스트용)
   const handleDevLogin = () => {
@@ -48,24 +59,27 @@ export function LoginGuard({ children }: LoginGuardProps) {
     window.location.reload();
   };
 
-  // 로딩 중이거나 토큰이 없으면 적절한 UI 표시
-  if (userInfoLoading || (isLoggedIn === false && !tokens)) {
-    const loadingText = userInfoLoading 
-      ? "로그인 상태를 확인하는 중..." 
-      : "로그인 화면으로 이동 중...";
+  // 사용자 정보 로딩 중일 때만 로딩 화면 표시 (토큰이 있을 때)
+  if (userInfoLoading && isLoggedIn && tokens) {
+    console.log('🛡️ [LoginGuard] 사용자 정보 로딩 화면 표시');
       
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{loadingText}</p>
+          <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
         </div>
       </div>
     );
   }
 
-  // 토큰이 없고 로딩이 끝났으면 로그인 필요 화면 표시
+  // 토큰이 없거나 로그인 상태가 아니면 로그인 필요 화면 표시
   if (!isLoggedIn || !tokens) {
+    console.log('🛡️ [LoginGuard] 로그인 필요 화면 표시:', { 
+      isLoggedIn, 
+      hasTokens: !!tokens,
+      isLoading
+    });
     // 기존 로그인 필요 화면으로 바로 이동
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -203,17 +217,6 @@ export function LoginGuard({ children }: LoginGuardProps) {
     );
   }
 
-  // 토큰이 있는데 여전히 사용자 정보 로딩 중
-  if (userInfoLoading && (isLoggedIn || tokens)) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
-        </div>
-      </div>
-    );
-  }
 
   // 개발 환경에서 캐시 정보 표시를 위한 데이터
   const cacheInfo = getCacheInfo();

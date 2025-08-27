@@ -14,27 +14,20 @@ interface AuthState {
   initializeFromLocalStorage: () => void;
 }
 
+// Store 생성
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      tokens: null,
-      isLoggedIn: false,
-      isLoading: true,
-
-      setTokens: (tokens) => {
-        set({
-          tokens,
-          isLoggedIn: tokens !== null,
-          isLoading: false,
-        });
-      },
-
-
-      // 로컬스토리지에서 accessToken 확인 및 자동 로그인
-      initializeFromLocalStorage: () => {
+    (set) => {
+      // 초기화 함수 정의
+      const initializeFromLocalStorage = () => {
+        console.log('🚀 [initializeFromLocalStorage] 시작');
+        
         try {
           const accessToken = localStorage.getItem("accessToken");
+          console.log('🚀 [initializeFromLocalStorage] accessToken:', !!accessToken);
+          
           if (accessToken) {
+            console.log('🚀 [initializeFromLocalStorage] 토큰 발견, 로그인 상태로 설정');
             const tokenObject = {
               accessToken: accessToken,
               refreshToken: "",
@@ -53,40 +46,79 @@ export const useAuthStore = create<AuthState>()(
                 Date.now().toString()
               );
             }
+            console.log('🚀 [initializeFromLocalStorage] 완료: 로그인됨');
           } else {
+            console.log('🚀 [initializeFromLocalStorage] 토큰 없음, 로그아웃 상태로 설정');
             set({ isLoading: false, isLoggedIn: false, tokens: null });
+            console.log('🚀 [initializeFromLocalStorage] 완료: 로그아웃됨');
           }
         } catch (error) {
-          console.error('토큰 초기화 실패:', error);
+          console.error('🚀 [initializeFromLocalStorage] 에러:', error);
           set({ isLoading: false, isLoggedIn: false, tokens: null });
         }
-      },
+      };
 
-      setLoading: (loading) => {
-        set({ isLoading: loading });
-      },
+      // 즉시 초기화 시도 (브라우저 환경에서만)
+      if (typeof window !== 'undefined') {
+        console.log('🏗️ [Store] 브라우저 환경 감지, 즉시 초기화 시도');
+        setTimeout(() => initializeFromLocalStorage(), 50);
+      }
 
-      clearTokens: () => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("auth-storage-timestamp");
-        set({
-          tokens: null,
-          isLoggedIn: false,
-          isLoading: false,
-        });
-      },
-    }),
+      return {
+        tokens: null,
+        isLoggedIn: false,
+        isLoading: true,
+
+        setTokens: (tokens) => {
+          set({
+            tokens,
+            isLoggedIn: tokens !== null,
+            isLoading: false,
+          });
+        },
+
+
+        // 로컬스토리지에서 accessToken 확인 및 자동 로그인 (외부에서 호출 가능)
+        initializeFromLocalStorage,
+
+        setLoading: (loading) => {
+          set({ isLoading: loading });
+        },
+
+        clearTokens: () => {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("auth-storage-timestamp");
+          set({
+            tokens: null,
+            isLoggedIn: false,
+            isLoading: false,
+          });
+        },
+      };
+    },
     {
       name: "auth-storage",
       partialize: (state) => ({
         tokens: state.tokens,
         isLoggedIn: state.isLoggedIn,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        console.log('🔄 [Zustand] onRehydrateStorage 호출됨', { state: !!state, error });
+        
+        if (error) {
+          console.error('🔄 [Zustand] 복원 에러:', error);
+        }
+        
         if (state) {
-          state.setLoading(false);
-          // 초기 설치시 토큰 초기화 확실히 수행
-          setTimeout(() => state.initializeFromLocalStorage(), 0);
+          console.log('🔄 [Zustand] 상태 복원 성공, 토큰 초기화 실행');
+          state.initializeFromLocalStorage();
+        } else {
+          console.log('🔄 [Zustand] 상태 없음 - 새 설치로 간주');
+          // 새 설치인 경우 직접 초기화
+          setTimeout(() => {
+            const currentState = useAuthStore.getState();
+            currentState.initializeFromLocalStorage();
+          }, 100);
         }
       },
     }
