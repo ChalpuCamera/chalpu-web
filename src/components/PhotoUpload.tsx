@@ -14,6 +14,7 @@ import {
 import { uploadPhoto } from "@/utils/photoUpload";
 import { useNativeBridge } from "@/utils/nativeBridge";
 import { usePhotosByFood } from "@/hooks/usePhoto";
+import { getThumbnailUrl } from "@/utils/imageUtils";
 import { usePathname } from "next/navigation";
 
 interface PhotoUploadProps {
@@ -240,10 +241,13 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
           if (result.tempFileURL) {
             console.log("카메라 촬영 성공:", result.tempFileURL);
 
-            // 원본 사진 정보가 있으면 해당 크기로, 없으면 기본 크기로 URL 생성
+            // 공통 이미지 유틸리티를 사용하여 고화질 썸네일 URL 생성
             const fullImageUrl = cdnPhoto
-              ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${cdnPhoto.imageWidth}x${cdnPhoto.imageHeight}&t=crop&q=70`
-              : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
+              ? getThumbnailUrl(result.tempFileURL, {
+                  width: cdnPhoto.imageWidth,
+                  height: cdnPhoto.imageHeight
+                })
+              : getThumbnailUrl(result.tempFileURL);
             console.log("완전한 이미지 URL:", fullImageUrl);
 
             if (previewOnly) {

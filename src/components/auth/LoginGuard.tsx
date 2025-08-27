@@ -11,6 +11,7 @@ import { useActivities, useActivityCache } from "@/hooks/useActivity";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { usePathname } from "next/navigation";
+import LoadingPage from "@/app/loading";
 
 interface LoginGuardProps {
   children: React.ReactNode;
@@ -18,7 +19,8 @@ interface LoginGuardProps {
 }
 
 export function LoginGuard({ children }: LoginGuardProps) {
-  const { tokens, setTokens, clearTokens, isLoggedIn, isLoading } = useAuthStore();
+  const { tokens, setTokens, clearTokens, isLoggedIn, isLoading } =
+    useAuthStore();
   const { bridge, isAvailable } = useNativeBridge();
   const {
     data: userInfo,
@@ -29,16 +31,16 @@ export function LoginGuard({ children }: LoginGuardProps) {
   const { data: activities } = useActivities(5);
   const { data: storesData } = useMyStores({ page: 0, size: 10 });
   const pathname = usePathname();
-  
+
   // 디버깅용 로그
-  console.log('🛡️ [LoginGuard] 렌더링, 상태:', {
+  console.log("🛡️ [LoginGuard] 렌더링, 상태:", {
     tokens: !!tokens,
     isLoggedIn,
     isLoading,
     userInfoLoading,
     userInfo: !!userInfo,
     userInfoError: !!userInfoError,
-    isAvailable
+    isAvailable,
   });
 
   // 개발 모드에서 임시 로그인 (테스트용)
@@ -61,8 +63,8 @@ export function LoginGuard({ children }: LoginGuardProps) {
 
   // 사용자 정보 로딩 중일 때만 로딩 화면 표시 (토큰이 있을 때)
   if (userInfoLoading && isLoggedIn && tokens) {
-    console.log('🛡️ [LoginGuard] 사용자 정보 로딩 화면 표시');
-      
+    console.log("🛡️ [LoginGuard] 사용자 정보 로딩 화면 표시");
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -75,29 +77,35 @@ export function LoginGuard({ children }: LoginGuardProps) {
 
   // 토큰이 없거나 로그인 상태가 아니면 로그인 필요 화면 표시
   if (!isLoggedIn || !tokens) {
-    console.log('🛡️ [LoginGuard] 로그인 필요 화면 표시:', { 
-      isLoggedIn, 
+    console.log("🛡️ [LoginGuard] 로그인 필요 화면 표시:", {
+      isLoggedIn,
       hasTokens: !!tokens,
-      isLoading
+      isLoading,
     });
     // 기존 로그인 필요 화면으로 바로 이동
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md p-8 text-center">
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FontAwesomeIcon icon={faUser} className="text-2xl text-blue-600" />
+          {isAvailable ? (
+            <LoadingPage></LoadingPage>
+          ) : (
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FontAwesomeIcon
+                  icon={faUser}
+                  className="text-2xl text-blue-600"
+                />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                로그인이 필요합니다
+              </h1>
+              <p className="text-gray-600">
+                {isAvailable
+                  ? "앱에서 로그인 후 다시 시도해주세요"
+                  : "Chalpu 앱에서 로그인 후 이용해주세요"}
+              </p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              로그인이 필요합니다
-            </h1>
-            <p className="text-gray-600">
-              {isAvailable
-                ? "앱에서 로그인 후 다시 시도해주세요"
-                : "Chalpu 앱에서 로그인 후 이용해주세요"}
-            </p>
-          </div>
-
+          )}
           {/* 인증 에러 표시 */}
           {userInfoError && (
             <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
@@ -216,7 +224,6 @@ export function LoginGuard({ children }: LoginGuardProps) {
       </div>
     );
   }
-
 
   // 개발 환경에서 캐시 정보 표시를 위한 데이터
   const cacheInfo = getCacheInfo();

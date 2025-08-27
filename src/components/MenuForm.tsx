@@ -11,6 +11,7 @@ import { useNativeBridge } from "@/utils/nativeBridge";
 import { useSearchParams, usePathname } from "next/navigation";
 import { uploadPhoto } from "@/utils/photoUpload";
 import { usePhotosByFood } from "@/hooks/usePhoto";
+import { getThumbnailUrl } from "@/utils/imageUtils";
 
 interface MenuFormProps {
   mode: "create" | "edit";
@@ -156,8 +157,11 @@ const MenuForm: React.FC<MenuFormProps> = ({
           // 새로 찍은 사진 처리
           console.log("새로 찍은 사진:", result.tempFileURL);
           const fullImageUrl = originalPhoto
-            ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
-            : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${result.tempFileURL}`;
+            ? getThumbnailUrl(result.tempFileURL, {
+                width: originalPhoto.imageWidth,
+                height: originalPhoto.imageHeight
+              })
+            : getThumbnailUrl(result.tempFileURL);
 
           // 현재 표시할 이미지 URL 업데이트
           setCurrentImageUrl(fullImageUrl);

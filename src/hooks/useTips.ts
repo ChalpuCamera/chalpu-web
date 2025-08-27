@@ -56,7 +56,8 @@ export const useTodayTip = () => {
   });
 };
 
-// CDN 이미지 URL 생성 함수
+// CDN 이미지 URL 생성 함수 (고화질)
 export const getTipImageUrl = (tipId: string): string => {
-  return `${process.env.NEXT_PUBLIC_IMAGE_URL}/tip/${tipId}.webp?s=80x80&t=crop&q=70`;
+  // 80px로 표시하지만 240px로 가져와서 화질 개선
+  return `${process.env.NEXT_PUBLIC_IMAGE_URL}/tip/${tipId}.webp?s=240x240&t=crop&q=85`;
 };

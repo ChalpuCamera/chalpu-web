@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 import { usePhotosByFood } from "@/hooks/usePhoto";
+import { getThumbnailUrl, getCroppedImageUrl } from "@/utils/imageUtils";
 
 interface Platform {
   name: string;
@@ -62,8 +63,6 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
     null
   );
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
 
   // 음식별 사진 정보 조회
   const { data: photoData } = usePhotosByFood(foodItemId, {
@@ -73,88 +72,24 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
 
   const originalPhoto = photoData?.result?.content?.[0];
 
-  const handlePlatformSelect = async (platform: Platform) => {
+  const handlePlatformSelect = (platform: Platform) => {
     if (!thumbnailUrl || !originalPhoto) {
       alert("다운로드할 사진이 없습니다.");
       return;
     }
 
     setSelectedPlatform(platform);
-    setIsDownloading(true);
-
-    try {
-      // 이미지 크롭 및 다운로드 처리
-      const croppedUrl = await cropAndDownloadImage(
-        thumbnailUrl,
-        platform.aspectRatio,
-        platform.name,
-        foodName,
-        originalPhoto.imageHeight,
-        originalPhoto.imageWidth
-      );
-      setCroppedImageUrl(croppedUrl);
-    } catch (error) {
-      console.error("이미지 다운로드 실패:", error);
-      alert("이미지 다운로드에 실패했습니다.");
-    } finally {
-      setIsDownloading(false);
-    }
   };
 
-  const cropAndDownloadImage = async (
-    imageUrl: string,
-    targetAspectRatio: number,
-    platformName: string,
-    fileName: string,
-    imageHeight: number,
-    imageWidth: number
-  ): Promise<string> => {
-    return new Promise((resolve) => {
-      // 원본 크기를 최대한 유지하면서 타겟 비율에 맞춤
-      // 이미지는 항상 가로가 세로보다 크다고 가정
-      const originalAspectRatio = imageWidth / imageHeight;
-      let outputWidth: number;
-      let outputHeight: number;
-
-      if (targetAspectRatio > originalAspectRatio) {
-        // 타겟 비율이 원본보다 더 가로로 긴 경우 (더 와이드한 경우)
-        // 가로를 기준으로 맞추고 위아래를 자름
-        outputWidth = imageWidth;
-        outputHeight = Math.round(imageWidth / targetAspectRatio);
-      } else {
-        // 타겟 비율이 원본보다 덜 가로로 긴 경우 (더 스퀘어한 경우)
-        // 세로를 기준으로 맞추고 좌우를 자름
-        outputHeight = imageHeight;
-        outputWidth = Math.round(imageHeight * targetAspectRatio);
-      }
-
-      // CDN 리사이징 API 사용 - crop 타입으로 정확한 크기로 자르기
-      const croppedImageUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${outputWidth}x${outputHeight}&t=crop&q=100`;
-      console.log("croppedImageUrl", croppedImageUrl);
-      // HTTP URL 직접 다운로드 (안드로이드가 감지할 수 있도록)
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/:/g, "-");
-      const downloadFileName = `${fileName}_${platformName}_${timestamp}.jpg`;
-
-      const link = document.createElement("a");
-      link.href = croppedImageUrl; // HTTP URL 직접 사용
-      link.download = downloadFileName;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      console.log("link", link);
-
-      resolve(croppedImageUrl);
-    });
+  const getDownloadFileName = (foodName: string, platformName: string) => {
+    const timestamp = new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/:/g, "-");
+    return `${foodName}_${platformName}_${timestamp}.jpg`;
   };
 
   const handleClose = () => {
-    if (croppedImageUrl) {
-      URL.revokeObjectURL(croppedImageUrl);
-    }
     onClose();
   };
 
@@ -175,9 +110,12 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
             {thumbnailUrl ? (
               <Image
                 src={
-                  thumbnailUrl && originalPhoto
-                    ? `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`
-                    : `${process.env.NEXT_PUBLIC_IMAGE_URL}/${thumbnailUrl}?s=60x60&t=crop&q=70`
+                  originalPhoto
+                    ? getThumbnailUrl(thumbnailUrl, {
+                        width: originalPhoto.imageWidth,
+                        height: originalPhoto.imageHeight
+                      })
+                    : getThumbnailUrl(thumbnailUrl, undefined, 60)
                 }
                 alt={foodName}
                 width={60}
@@ -202,34 +140,65 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
         <div className="p-4">
           <h5 className="text-sm font-medium mb-3">플랫폼을 선택하세요</h5>
           <div className="space-y-2">
-            {platforms.map((platform) => (
-              <button
-                key={platform.name}
-                onClick={() => handlePlatformSelect(platform)}
-                disabled={isDownloading || !thumbnailUrl}
-                className={`w-full p-3 rounded-lg border transition-colors text-left ${
-                  platform.bgColor
-                } ${
-                  !thumbnailUrl
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className={`font-medium ${platform.color}`}>
-                      {platform.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      비율: {platform.ratio}
-                    </p>
-                  </div>
-                  {isDownloading && selectedPlatform === platform && (
-                    <div className="text-sm text-gray-500">다운로드 중...</div>
+            {platforms.map((platform) => {
+              const croppedUrl = thumbnailUrl && originalPhoto 
+                ? getCroppedImageUrl(
+                    thumbnailUrl,
+                    platform.aspectRatio,
+                    {
+                      width: originalPhoto.imageWidth,
+                      height: originalPhoto.imageHeight
+                    },
+                    100
+                  )
+                : '';
+              const downloadFileName = getDownloadFileName(foodName, platform.name);
+              
+              return (
+                <div key={platform.name} className="relative">
+                  {thumbnailUrl && originalPhoto ? (
+                    <a
+                      href={croppedUrl}
+                      download={downloadFileName}
+                      onClick={() => handlePlatformSelect(platform)}
+                      className={`w-full p-3 rounded-lg border transition-colors text-left block ${platform.bgColor} cursor-pointer`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className={`font-medium ${platform.color}`}>
+                            {platform.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            비율: {platform.ratio}
+                          </p>
+                        </div>
+                        <FontAwesomeIcon 
+                          icon={faDownload} 
+                          className="text-gray-400" 
+                        />
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="w-full p-3 rounded-lg border transition-colors text-left opacity-50 cursor-not-allowed bg-gray-50">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className={`font-medium ${platform.color}`}>
+                            {platform.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            비율: {platform.ratio}
+                          </p>
+                        </div>
+                        <FontAwesomeIcon 
+                          icon={faDownload} 
+                          className="text-gray-300" 
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
 
           {!thumbnailUrl && (
@@ -239,15 +208,23 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
           )}
         </div>
 
-        {/* 미리보기 (크롭된 이미지가 있을 때) */}
-        {croppedImageUrl && selectedPlatform && (
+        {/* 미리보기 (선택된 플랫폼이 있을 때) */}
+        {selectedPlatform && thumbnailUrl && originalPhoto && (
           <div className="p-4 border-t">
             <h5 className="text-sm font-medium mb-2">
               {selectedPlatform.name} 미리보기
             </h5>
             <div className="relative bg-white rounded-lg overflow-hidden">
               <Image
-                src={croppedImageUrl}
+                src={getCroppedImageUrl(
+                  thumbnailUrl,
+                  selectedPlatform.aspectRatio,
+                  {
+                    width: originalPhoto.imageWidth,
+                    height: originalPhoto.imageHeight
+                  },
+                  70 // 미리보기용은 낮은 품질
+                )}
                 alt={`${foodName} - ${selectedPlatform.name}`}
                 width={300}
                 height={300 / selectedPlatform.aspectRatio}
@@ -255,7 +232,7 @@ const PhotoDownload: React.FC<PhotoDownloadProps> = ({
               />
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              파일이 다운로드 폴더에 저장되었습니다.
+              위 버튼을 클릭하면 고품질 이미지가 다운로드됩니다.
             </p>
           </div>
         )}
