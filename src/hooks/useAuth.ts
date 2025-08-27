@@ -128,7 +128,7 @@ export const useAuth = () => {
     return () => {
       clearTimeout(fallbackTimer);
     };
-  }, [initializeTokens]);
+  }, [initializeTokens, isLoggedIn, isLoading, tokens]);
 
 
   return {
