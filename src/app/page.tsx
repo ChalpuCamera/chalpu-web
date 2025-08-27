@@ -426,7 +426,7 @@ export default function Home() {
         </div>
 
         {/* Network Status Section */}
-        <div>
+        {/* <div>
           {!isAvailable && (
             <div className="bg-yellow-100 rounded-lg p-3 mt-8">
               <p className="text-base text-yellow-800 text-center">
@@ -434,7 +434,7 @@ export default function Home() {
               </p>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
       {AlertDialogComponent}
     </div>

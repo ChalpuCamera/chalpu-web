@@ -27,9 +27,12 @@ export const useAuth = () => {
     } catch (error) {
       console.error("토큰 초기화 실패:", error);
       clearTokens();
-    } finally {
-      setLoading(false);
     }
+    
+    // 초기화 실패 시 안전장치: 3초 후 강제로 로딩 해제
+    setTimeout(() => {
+      setLoading(false);
+    }, 3000);
   }, [
     setLoading,
     clearTokens,
@@ -98,7 +101,33 @@ export const useAuth = () => {
 
   // 컴포넌트 마운트 시 토큰 초기화
   useEffect(() => {
+    console.log('🔥 [useAuth] useEffect 시작, 현재 상태:', { 
+      tokens: !!tokens, 
+      isLoggedIn, 
+      isLoading 
+    });
+    
+    // 즉시 초기화 시도
     initializeTokens();
+    
+    // fallback: 2초 후에도 여전히 로딩 중이면 강제 초기화
+    const fallbackTimer = setTimeout(() => {
+      const currentState = useAuthStore.getState();
+      console.log('🔥 [useAuth] Fallback 타이머 실행, 현재 상태:', {
+        tokens: !!currentState.tokens,
+        isLoggedIn: currentState.isLoggedIn,
+        isLoading: currentState.isLoading
+      });
+      
+      if (currentState.isLoading) {
+        console.log('🔥 [useAuth] 여전히 로딩 중 - 강제 초기화');
+        currentState.initializeFromLocalStorage();
+      }
+    }, 2000);
+    
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
   }, [initializeTokens]);
 
 

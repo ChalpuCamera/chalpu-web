@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Photo } from "@/lib/api/types";
 import PhotoUpload from "@/components/PhotoUpload";
 import { usePhotosByFood } from "@/hooks/usePhoto";
+import { getThumbnailUrl } from "@/utils/imageUtils";
 
 interface MenuPhotoSectionProps {
   mode: "create" | "edit";
@@ -47,12 +48,15 @@ const MenuPhotoSection: React.FC<MenuPhotoSectionProps> = ({
 
   const originalPhoto = photoData?.result?.content?.[0];
 
-  // 이미지 URL 생성 함수
+  // 이미지 URL 생성 함수 (공통 유틸리티 사용)
   const getImageUrl = (imageUrl: string) => {
     if (originalPhoto) {
-      return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}?s=${originalPhoto.imageWidth}x${originalPhoto.imageHeight}&t=crop&q=70`;
+      return getThumbnailUrl(imageUrl, {
+        width: originalPhoto.imageWidth,
+        height: originalPhoto.imageHeight
+      });
     }
-    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/${imageUrl}`;
+    return getThumbnailUrl(imageUrl);
   };
   if (mode === "create") {
     // 1. 사진 없이 생성하는 경우 & 2. 네이티브에서 사진촬영 후 생성하는 경우
