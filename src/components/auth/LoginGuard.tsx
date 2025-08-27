@@ -61,6 +61,12 @@ export function LoginGuard({ children }: LoginGuardProps) {
     window.location.reload();
   };
 
+  // 인증 초기화 중이면 로딩 화면
+  if (isLoading) {
+    console.log("🛡️ [LoginGuard] 인증 초기화 로딩 화면 표시");
+    return <LoadingPage />;
+  }
+
   // 사용자 정보 로딩 중일 때만 로딩 화면 표시 (토큰이 있을 때)
   if (userInfoLoading && isLoggedIn && tokens) {
     console.log("🛡️ [LoginGuard] 사용자 정보 로딩 화면 표시");
@@ -86,26 +92,22 @@ export function LoginGuard({ children }: LoginGuardProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md p-8 text-center">
-          {isAvailable ? (
-            <LoadingPage></LoadingPage>
-          ) : (
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FontAwesomeIcon
-                  icon={faUser}
-                  className="text-2xl text-blue-600"
-                />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                로그인이 필요합니다
-              </h1>
-              <p className="text-gray-600">
-                {isAvailable
-                  ? "앱에서 로그인 후 다시 시도해주세요"
-                  : "Chalpu 앱에서 로그인 후 이용해주세요"}
-              </p>
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FontAwesomeIcon
+                icon={faUser}
+                className="text-2xl text-blue-600"
+              />
             </div>
-          )}
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              로그인이 필요합니다
+            </h1>
+            <p className="text-gray-600">
+              {isAvailable
+                ? "앱에서 로그인 후 다시 시도해주세요"
+                : "Chalpu 앱에서 로그인 후 이용해주세요"}
+            </p>
+          </div>
           {/* 인증 에러 표시 */}
           {userInfoError && (
             <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
