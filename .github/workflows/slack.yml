@@ -1,0 +1,30 @@
+name: Slack Notify on PR Merge or Push
+
+on:
+  pull_request:
+    types: [closed]
+  push:
+    branches:
+      - main
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Message (PR Merge or Direct Push)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            # PR이 머지되었을 때만 실행
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "text": "✔️ PR #${{ github.event.pull_request.number }}이 `${{ github.event.pull_request.base.ref }}` 브랜치에 머지되었습니다.\n머지한 사람: ${{ github.actor }}\n<${{ github.event.pull_request.html_url }}|PR 보러가기>"
+              }' ${{ secrets.SLACK_WEBHOOK_URL }}
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # 커밋의 작성자가 'GitHub'가 아닌 경우, 즉 사용자가 직접 푸시한 경우에만 실행
+            if [ "${{ github.event.head_commit.committer.name }}" != "GitHub" ]; then
+              curl -X POST -H 'Content-type: application/json' \
+                --data '{
+                  "text": "✔️ `${{ github.ref_name }}` 브랜치에 커밋이 푸시되었습니다.\n커밋한 사람: ${{ github.actor }}\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|커밋 보러가기>"
+                }' ${{ secrets.SLACK_WEBHOOK_URL }}
+            fi
+          fi
