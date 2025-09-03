@@ -14,7 +14,7 @@ export const useAuth = () => {
     setTokens,
     setLoading,
     clearTokens,
-    initializeFromLocalStorage,
+    initialize,
   } = useAuthStore();
 
   // 토큰 초기화
@@ -23,21 +23,17 @@ export const useAuth = () => {
 
     try {
       // 로컬스토리지에서 accessToken 확인 및 자동 로그인
-      initializeFromLocalStorage();
+      initialize();
     } catch (error) {
       console.error("토큰 초기화 실패:", error);
       clearTokens();
     }
-    
+
     // 초기화 실패 시 안전장치: 3초 후 강제로 로딩 해제
     setTimeout(() => {
       setLoading(false);
     }, 3000);
-  }, [
-    setLoading,
-    clearTokens,
-    initializeFromLocalStorage,
-  ]);
+  }, [setLoading, clearTokens, initialize]);
 
   // 토큰 갱신 (네이티브에서 처리하므로 단순히 로컬스토리지 재확인)
   const refreshTokens = useCallback(async (): Promise<boolean> => {
@@ -101,35 +97,34 @@ export const useAuth = () => {
 
   // 컴포넌트 마운트 시 토큰 초기화
   useEffect(() => {
-    console.log('🔥 [useAuth] useEffect 시작, 현재 상태:', { 
-      tokens: !!tokens, 
-      isLoggedIn, 
-      isLoading 
+    console.log("🔥 [useAuth] useEffect 시작, 현재 상태:", {
+      tokens: !!tokens,
+      isLoggedIn,
+      isLoading,
     });
-    
+
     // 즉시 초기화 시도
     initializeTokens();
-    
+
     // fallback: 2초 후에도 여전히 로딩 중이면 강제 초기화
     const fallbackTimer = setTimeout(() => {
       const currentState = useAuthStore.getState();
-      console.log('🔥 [useAuth] Fallback 타이머 실행, 현재 상태:', {
+      console.log("🔥 [useAuth] Fallback 타이머 실행, 현재 상태:", {
         tokens: !!currentState.tokens,
         isLoggedIn: currentState.isLoggedIn,
-        isLoading: currentState.isLoading
+        isLoading: currentState.isLoading,
       });
-      
+
       if (currentState.isLoading) {
-        console.log('🔥 [useAuth] 여전히 로딩 중 - 강제 초기화');
-        currentState.initializeFromLocalStorage();
+        console.log("🔥 [useAuth] 여전히 로딩 중 - 강제 초기화");
+        currentState.initialize();
       }
     }, 2000);
-    
+
     return () => {
       clearTimeout(fallbackTimer);
     };
   }, [initializeTokens]);
-
 
   return {
     tokens,

@@ -3,7 +3,8 @@
 import React from "react";
 import { DevModeHandlers, CacheInfo } from "./LoginGuardTypes";
 import { AuthTokens } from "@/utils/nativeBridge";
-import { User } from "@/lib/api";
+import { User, Store, PagedResult } from "@/lib/api";
+import { Activity } from "@/hooks/useActivity";
 
 interface LoginGuardDevPanelProps {
   cacheInfo: CacheInfo;
@@ -15,9 +16,9 @@ interface LoginGuardDevPanelProps {
   userInfoError: Error | null;
   userInfo: User | undefined;
   clearTokens: () => void;
-  stores: any[];
-  activities: any[] | undefined;
-  storesData: any;
+  stores: Store[];
+  activities: Activity[] | undefined;
+  storesData: PagedResult<Store> | undefined;
   isAvailable: boolean;
   devHandlers: DevModeHandlers;
 }
@@ -44,8 +45,7 @@ export function LoginGuardDevPanel({
         {/* 캐시 정보 */}
         <div className="flex justify-between items-center mb-1">
           <span>
-            캐시: {cacheInfo.count}개 |
-            {cacheInfo.isValid ? " 유효" : " 무효"} |
+            캐시: {cacheInfo.count}개 |{cacheInfo.isValid ? " 유효" : " 무효"} |
             {cacheInfo.lastUpdate
               ? ` ${cacheInfo.lastUpdate.toLocaleTimeString()}`
               : " 없음"}
@@ -154,9 +154,8 @@ export function LoginGuardDevPanel({
         {/* 매장 및 활동 정보 */}
         <div className="flex justify-between items-center">
           <span>
-            매장: {stores.length ? `${stores.length}개` : "로딩..."} |
-            활동: {activities?.length || 0}개 | 총:{" "}
-            {storesData?.totalElements || 0}개
+            매장: {stores.length ? `${stores.length}개` : "로딩..."} | 활동:{" "}
+            {activities?.length || 0}개 | 총: {storesData?.totalElements || 0}개
           </span>
         </div>
 
@@ -165,9 +164,7 @@ export function LoginGuardDevPanel({
           <span>
             브릿지 상태: {isAvailable ? "✅ 연결됨" : "❌ 미연결"} |
             NativeBridge:{" "}
-            {typeof window !== "undefined" && window.NativeBridge
-              ? "✅"
-              : "❌"}{" "}
+            {typeof window !== "undefined" && window.NativeBridge ? "✅" : "❌"}{" "}
             | iOS:{" "}
             {typeof window !== "undefined" &&
             window.webkit?.messageHandlers?.chalpu
