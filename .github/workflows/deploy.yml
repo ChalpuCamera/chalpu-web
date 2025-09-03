@@ -12,7 +12,6 @@ jobs:
     steps:
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
-        continue-on-error: true
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
